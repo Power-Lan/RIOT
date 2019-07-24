@@ -110,7 +110,7 @@ static inline void ipv4_hdr_set_version(ipv4_hdr_t *hdr)
  *
  * @return  Value of the version field of @p hdr.
  */
-static inline uint8_t ipv4_hdr_get_version(ipv4_hdr_t *hdr)
+static inline uint8_t ipv4_hdr_get_version(const ipv4_hdr_t *hdr)
 {
     return ((hdr->v_ih) >> 4);
 }
