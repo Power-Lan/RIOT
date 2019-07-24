@@ -82,6 +82,9 @@ typedef enum {
      * @{
      * @name Network layer
      */
+#ifdef MODULE_GNRC_IPV4
+    GNRC_NETTYPE_IPV4,          /**< Protocol is IPv4 */
+#endif
 #ifdef MODULE_GNRC_IPV6
     GNRC_NETTYPE_IPV6,          /**< Protocol is IPv6 */
 #endif
