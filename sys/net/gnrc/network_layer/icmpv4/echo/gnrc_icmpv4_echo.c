@@ -15,9 +15,9 @@
 #include "net/gnrc.h"
 
 #include "od.h"
-#include "net/gnrc/icmp.h"
+#include "net/gnrc/icmpv4.h"
 #include "net/gnrc/icmpv4/echo.h"
-#include "net/gnrc/ipv4/hdr.h"
+#include "net/ipv4/hdr.h"
 #include "utlist.h"
 
 #define ENABLE_DEBUG    (0)
@@ -28,21 +28,21 @@
 #include <inttypes.h>
 #endif
 
-gnrc_pktsnip_t *gnrc_icmpv4_echo_build(uint8_t type, uint16_t id, uint16_t seq,
+gnrc_pktsnip_t *gnrc_icmpv4_echo_build(uint8_t type, uint16_t id, uint16_t sn,
                                        uint8_t *data, size_t data_len)
 {
     gnrc_pktsnip_t *pkt;
-    icmpv4_echo_t *echo;
+    icmp_echo_t *echo;
 
-    if ((pkt = gnrc_icmpv4_build(NULL, type, 0, data_len + sizeof(icmpv4_echo_t))) == NULL) {
+    if ((pkt = gnrc_icmpv4_build(NULL, type, 0, data_len + sizeof(icmp_echo_t))) == NULL) {
         return NULL;
     }
 
     DEBUG("icmpv4_echo: Building echo message with type=%" PRIu8 "id=%" PRIu16
-          ", seq=%" PRIu16, type, id, seq);
-    echo = (icmpv4_echo_t *)pkt->data;
+          ", sn=%" PRIu16, type, id, sn);
+    echo = (icmp_echo_t *)pkt->data;
     echo->id = byteorder_htons(id);
-    echo->seq = byteorder_htons(seq);
+    echo->sn = byteorder_htons(sn);
 
     if (data != NULL) {
         memcpy(echo + 1, data, data_len);
@@ -57,20 +57,20 @@ gnrc_pktsnip_t *gnrc_icmpv4_echo_build(uint8_t type, uint16_t id, uint16_t seq,
 }
 
 void gnrc_icmpv4_echo_req_handle(gnrc_netif_t *netif, ipv4_hdr_t *ipv4_hdr,
-                                 icmpv4_echo_t *echo, uint16_t len)
+                                 icmp_echo_t *echo, uint16_t len)
 {
-    uint8_t *payload = ((uint8_t *)echo) + sizeof(icmpv4_echo_t);
+    uint8_t *payload = ((uint8_t *)echo) + sizeof(icmp_echo_t);
     gnrc_pktsnip_t *hdr, *pkt;
 
-    if ((echo == NULL) || (len < sizeof(icmpv4_echo_t))) {
+    if ((echo == NULL) || (len < sizeof(icmp_echo_t))) {
         DEBUG("icmpv4_echo: echo was NULL or len (%" PRIu16
-              ") was < sizeof(icmpv4_echo_t)\n", len);
+              ") was < sizeof(icmp_echo_t)\n", len);
         return;
     }
 
     pkt = gnrc_icmpv4_echo_build(ICMPV4_ECHO_REP, byteorder_ntohs(echo->id),
-                                 byteorder_ntohs(echo->seq), payload,
-                                 len - sizeof(icmpv4_echo_t));
+                                 byteorder_ntohs(echo->sn), payload,
+                                 len - sizeof(icmp_echo_t));
 
     if (pkt == NULL) {
         DEBUG("icmpv4_echo: no space left in packet buffer\n");

@@ -23,7 +23,7 @@
 #include <errno.h>
 #include <stdint.h>
 
-#include "net/icmpv4.h"
+#include "net/icmp.h"
 #include "net/ipv4/hdr.h"
 #include "net/gnrc/ipv4.h"
 #include "net/gnrc/netapi.h"

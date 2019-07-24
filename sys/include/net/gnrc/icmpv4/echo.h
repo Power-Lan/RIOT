@@ -56,7 +56,7 @@ gnrc_pktsnip_t *gnrc_icmpv4_echo_build(uint8_t type, uint16_t id, uint16_t seq,
  *                      of @p ipv4_hdr minus length of extension headers).
  */
 void gnrc_icmpv4_echo_req_handle(gnrc_netif_t *netif, ipv4_hdr_t *ipv4_hdr,
-                                 icmpv4_echo_t *echo, uint16_t len);
+                                 icmp_echo_t *echo, uint16_t len);
 
 #ifdef __cplusplus
 }

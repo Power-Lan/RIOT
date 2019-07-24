@@ -27,7 +27,7 @@
 #ifndef NET_GNRC_ICMPV4_H
 #define NET_GNRC_ICMPV4_H
 
-#include "net/icmpv4.h"
+#include "net/icmp.h"
 #include "net/gnrc/netif.h"
 #include "net/gnrc/pkt.h"
 

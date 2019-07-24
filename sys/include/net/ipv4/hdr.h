@@ -21,6 +21,7 @@
 #define NET_IPV4_HDR_H
 
 #include "byteorder.h"
+#include "net/inet_csum.h"
 #include "net/ipv4/addr.h"
 #ifdef __cplusplus
 extern "C" {

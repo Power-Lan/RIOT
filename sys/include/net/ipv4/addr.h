@@ -13,7 +13,7 @@
  * @{
  *
  * @file
- * @brief   IPv6 address type and helper functions definitions
+ * @brief   IPv4 address type and helper functions definitions
  *
  * @author  Martine Lenders <mlenders@inf.fu-berlin.de>
  */
@@ -21,6 +21,7 @@
 #define NET_IPV4_ADDR_H
 
 #include <stdbool.h>
+#include <string.h>
 #include <stdint.h>
 
 #include "byteorder.h"
@@ -55,14 +56,14 @@ typedef union {
 } ipv4_addr_t;
 
 /**
- * @see @ref IPV6_ADDR_UNSPECIFIED
+ * @see @ref IPV4_ADDR_UNSPECIFIED
  */
-extern const ipv6_addr_t ipv4_addr_unspecified;
+extern const ipv4_addr_t ipv4_addr_unspecified;
 
 /**
- * @see @ref IPV6_ADDR_LOOPBACK
+ * @see @ref IPV4_ADDR_LOOPBACK
  */
-extern const ipv6_addr_t ipv4_addr_loopback;
+extern const ipv4_addr_t ipv4_addr_loopback;
 
 /**
  * @brief   Checks if @p addr is unspecified (all zero).
