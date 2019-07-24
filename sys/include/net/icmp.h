@@ -45,6 +45,12 @@ typedef struct __attribute__((packed)){
     network_uint16_t sn;    /**< sequence number */
 } icmp_echo_t;
 
+#define ICMPV4_ECHO_REP     (0)   /**< Echo reply message (pong) */
+#define ICMPV4_DST_UNR      (3)   /**< Destination unreachable */
+#define ICMPV4_ECHO_REQ     (8)   /**< Echo request message (ping) */
+#define ICMPV4_TIME_EXC     (11)  /**< Time exceeded */
+#define ICMPV4_PARAM_PROB   (12)  /**< Perameter problem */
+#define ICMPV4_PKT_TOO_BIG  ICMPV4_PARAM_PROB
 
 #ifdef __cplusplus
 }

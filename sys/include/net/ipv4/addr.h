@@ -35,12 +35,60 @@ extern "C" {
 #define IPV4_ADDR_MAX_STR_LEN       (sizeof("255.255.255.255"))
 
 /**
+ * @brief   Static initializer for the unspecified IPv4 address (0.0.0.0)
+ *
+ */
+#define IPV4_ADDR_UNSPECIFIED               {{ 0x00, 0x00, 0x00, 0x00 }}
+
+/**
+ * @brief   Static initializer for the loopback IPv4 address (127.0.0.1)
+ *
+ */
+#define IPV4_ADDR_LOOPBACK                  {{ 0x7F, 0x00, 0x00, 0x01 }}
+
+/**
  * @brief Data type to represent an IPv4 address.
  */
 typedef union {
     uint8_t u8[4];          /**< as 4 8-bit unsigned integer */
     network_uint32_t u32;   /**< as 32-bit unsigned integer */
 } ipv4_addr_t;
+
+/**
+ * @see @ref IPV6_ADDR_UNSPECIFIED
+ */
+extern const ipv6_addr_t ipv4_addr_unspecified;
+
+/**
+ * @see @ref IPV6_ADDR_LOOPBACK
+ */
+extern const ipv6_addr_t ipv4_addr_loopback;
+
+/**
+ * @brief   Checks if @p addr is unspecified (all zero).
+ *
+ * @param[in] addr  An IPv4 address.
+ *
+ * @return  true, if @p addr is unspecified address
+ * @return  false, otherwise.
+ */
+static inline bool ipv4_addr_is_unspecified(const ipv4_addr_t *addr)
+{
+    return (memcmp(addr, &ipv4_addr_unspecified, sizeof(ipv4_addr_t)) == 0);
+}
+
+/**
+ * @brief   Checks if @p addr is a loopback address.
+ *
+ * @param[in] addr  An IPv4 address.
+ *
+ * @return  true, if @p addr is loopback address,
+ * @return  false, otherwise.
+ */
+static inline bool ipv4_addr_is_loopback(const ipv4_addr_t *addr)
+{
+    return (memcmp(addr, &ipv4_addr_loopback, sizeof(ipv4_addr_t)) == 0);
+}
 
 /**
  * @brief   Checks if two IPv4 addresses are equal.

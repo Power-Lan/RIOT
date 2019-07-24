@@ -202,6 +202,36 @@ static inline uint16_t ipv4_hdr_get_fo(ipv4_hdr_t *hdr)
 }
 
 /**
+ * @brief   Calculates the Internet Checksum for the IPv4 Pseudo Header.
+ *
+ * @see [RFC 8200, section 8.1](https://tools.ietf.org/html/rfc8200#section-8.1)
+ *
+ * @param[in] sum       Preinialized value of the sum.
+ * @param[in] prot_num  The @ref net_protnum you want to calculate the
+ *                      checksum for. Can not be inferred from
+ *                      ipv4_hdr_t::nh, since it can be an IPv4 exentension
+ *                      header.
+ * @param[in] hdr       An IPv4 header to derive the Pseudo Header from.
+ * @param[in] len       The upper-layer packet length for the pseudo header.
+ *                      Can not be inferred from ipv4_hdr_t::len, since
+ *                      there can be extension headers between the IPv4 header
+ *                      and the payload.
+ *
+ * @return  The non-normalized Internet Checksum of the given IPv4 pseudo header.
+ */
+static inline uint16_t ipv4_hdr_inet_csum(uint16_t sum, ipv4_hdr_t *hdr,
+                                          uint8_t prot_num, uint16_t len)
+{
+    if (((uint32_t)sum + len + prot_num) > 0xffff) {
+        /* increment by one for overflow to keep it as 1's complement sum */
+        sum++;
+    }
+
+    return inet_csum(sum + len + prot_num, hdr->src.u8,
+                     (2 * sizeof(ipv4_addr_t)));
+}
+
+/**
  * @brief   Outputs an IPv4 header to stdout.
  *
  * @param[in] hdr   An IPv4 header.
