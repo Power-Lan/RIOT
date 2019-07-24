@@ -20,6 +20,7 @@
 #include "bitfield.h"
 #include "net/ethernet.h"
 #include "net/ipv6.h"
+#include "net/ipv4.h"
 #include "net/gnrc.h"
 #ifdef MODULE_GNRC_IPV6_NIB
 #include "net/gnrc/ipv6/nib.h"
@@ -137,6 +138,48 @@ int gnrc_netif_get_from_netdev(gnrc_netif_t *netif, gnrc_netapi_opt_t *opt)
                     break;
             }
             break;
+#ifdef MODULE_GNRC_IPV4
+        case NETOPT_IPV4_ADDR: {
+                assert(opt->data_len >= sizeof(ipv4_addr_t));
+                ipv4_addr_t *tgt = opt->data;
+
+                res = 0;
+                for (unsigned i = 0;
+                     (res < (int)opt->data_len) && (i < GNRC_NETIF_IPV4_ADDRS_NUMOF);
+                     i++) {
+                    if (netif->ipv4.addrs_flags[i] != 0) {
+                        memcpy(tgt, &netif->ipv4.addrs[i], sizeof(ipv4_addr_t));
+                        res += sizeof(ipv4_addr_t);
+                        tgt++;
+                    }
+                }
+            }
+            break;
+        case NETOPT_IPV4_ADDR_FLAGS: {
+                assert(opt->data_len >= sizeof(uint8_t));
+                uint8_t *tgt = opt->data;
+
+                res = 0;
+                for (unsigned i = 0;
+                     (res < (int)opt->data_len) && (i < GNRC_NETIF_IPV4_ADDRS_NUMOF);
+                     i++) {
+                    if (netif->ipv4.addrs_flags[i] != 0) {
+                        *tgt = netif->ipv4.addrs_flags[i];
+                        res += sizeof(uint8_t);
+                        tgt++;
+                    }
+                }
+            }
+            break;
+        case NETOPT_MAX_PDU_SIZE:
+            if (opt->context == GNRC_NETTYPE_IPV4) {
+                assert(opt->data_len == sizeof(uint16_t));
+                *((uint16_t *)opt->data) = netif->ipv4.mtu;
+                res = sizeof(uint16_t);
+            }
+            /* else ask device */
+            break;
+#endif  /* MODULE_GNRC_IPV4 */
 #ifdef MODULE_GNRC_IPV6
         case NETOPT_IPV6_ADDR: {
                 assert(opt->data_len >= sizeof(ipv6_addr_t));
