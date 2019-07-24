@@ -201,6 +201,13 @@ static inline uint16_t ipv4_hdr_get_fo(ipv4_hdr_t *hdr)
     return (((hdr->fl_fo.u8[0] & 0x1f) << 8) + hdr->fl_fo.u8[1]);
 }
 
+/**
+ * @brief   Outputs an IPv4 header to stdout.
+ *
+ * @param[in] hdr   An IPv4 header.
+ */
+void ipv4_hdr_print(ipv4_hdr_t *hdr);
+
 #ifdef __cplusplus
 }
 #endif
