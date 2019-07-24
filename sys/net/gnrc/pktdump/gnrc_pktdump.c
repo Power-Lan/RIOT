@@ -66,6 +66,13 @@ static void _dump_snip(gnrc_pktsnip_t *pkt)
             sixlowpan_print(pkt->data, pkt->size);
             break;
 #endif
+#ifdef MODULE_GNRC_IPV4
+        case GNRC_NETTYPE_IPV4:
+            printf("NETTYPE_IPV4 (%i)\n", pkt->type);
+            ipv4_hdr_print(pkt->data);
+            hdr_len = sizeof(ipv6_hdr_t);
+            break;
+#endif
 #ifdef MODULE_GNRC_IPV6
         case GNRC_NETTYPE_IPV6:
             printf("NETTYPE_IPV6 (%i)\n", pkt->type);

@@ -77,6 +77,7 @@ typedef struct __attribute__((packed)) {
      *
      * This module provides helper functions to set, get, and check these
      * fields accordingly:
+     * * ipv4_hdr_is()
      * * ipv4_hdr_set_flags()
      * * ipv4_hdr_get_flags()
      * * ipv4_hdr_set_fo()
@@ -112,6 +113,19 @@ static inline void ipv4_hdr_set_version(ipv4_hdr_t *hdr)
 static inline uint8_t ipv4_hdr_get_version(ipv4_hdr_t *hdr)
 {
     return ((hdr->v_ih) >> 4);
+}
+
+/**
+ * @brief   Checks if the version field is set to 4
+ *
+ * @param[in] hdr   Pointer to an IPv4 header.
+ *
+ * @return  true, if version field is 4
+ * @return  false, otherwise
+ */
+static inline bool ipv4_hdr_is(const ipv4_hdr_t *hdr)
+{
+    return ipv4_hdr_get_version(hdr) == 0x04;
 }
 
 /**
