@@ -150,6 +150,10 @@ typedef enum {
 static inline gnrc_nettype_t gnrc_nettype_from_ethertype(uint16_t type)
 {
     switch (type) {
+#ifdef MODULE_GNRC_IPV4
+        case ETHERTYPE_IPV4:
+            return GNRC_NETTYPE_IPV4;
+#endif
 #ifdef MODULE_GNRC_IPV6
         case ETHERTYPE_IPV6:
             return GNRC_NETTYPE_IPV6;
@@ -189,6 +193,10 @@ static inline uint16_t gnrc_nettype_to_ethertype(gnrc_nettype_t type)
         case GNRC_NETTYPE_SIXLOWPAN:
             return ETHERTYPE_6LOENC;
 #endif
+#ifdef MODULE_GNRC_IPV4
+        case GNRC_NETTYPE_IPV4:
+            return ETHERTYPE_IPV4;
+#endif
 #ifdef MODULE_GNRC_IPV6
         case GNRC_NETTYPE_IPV6:
             return ETHERTYPE_IPV6;
@@ -223,6 +231,10 @@ static inline gnrc_nettype_t gnrc_nettype_from_protnum(uint8_t num)
 #ifdef MODULE_GNRC_ICMPV6
         case PROTNUM_ICMPV6:
             return GNRC_NETTYPE_ICMPV6;
+#endif
+#ifdef MODULE_GNRC_IPV4
+        case PROTNUM_IPV4:
+            return GNRC_NETTYPE_IPV4;
 #endif
 #ifdef MODULE_GNRC_IPV6
         case PROTNUM_IPV6:
@@ -268,6 +280,10 @@ static inline uint8_t gnrc_nettype_to_protnum(gnrc_nettype_t type)
 #ifdef MODULE_GNRC_ICMPV6
         case GNRC_NETTYPE_ICMPV6:
             return PROTNUM_ICMPV6;
+#endif
+#ifdef MODULE_GNRC_IPV4
+        case GNRC_NETTYPE_IPV4:
+            return PROTNUM_IPV4;
 #endif
 #ifdef MODULE_GNRC_IPV6
         case GNRC_NETTYPE_IPV6:
