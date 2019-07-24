@@ -85,6 +85,9 @@ typedef enum {
 #ifdef MODULE_GNRC_IPV4
     GNRC_NETTYPE_IPV4,          /**< Protocol is IPv4 */
 #endif
+#ifdef MODULE_GNRC_ICMPV4
+    GNRC_NETTYPE_ICMPV4,        /**< Protocol is ICMPv4 */
+#endif
 #ifdef MODULE_GNRC_IPV6
     GNRC_NETTYPE_IPV6,          /**< Protocol is IPv6 */
 #endif
@@ -228,6 +231,10 @@ static inline uint16_t gnrc_nettype_to_ethertype(gnrc_nettype_t type)
 static inline gnrc_nettype_t gnrc_nettype_from_protnum(uint8_t num)
 {
     switch (num) {
+#ifdef MODULE_GNRC_ICMPV4
+        case PROTNUM_ICMPV4:
+            return GNRC_NETTYPE_ICMPV4;
+#endif
 #ifdef MODULE_GNRC_ICMPV6
         case PROTNUM_ICMPV6:
             return GNRC_NETTYPE_ICMPV6;
@@ -277,6 +284,10 @@ static inline gnrc_nettype_t gnrc_nettype_from_protnum(uint8_t num)
 static inline uint8_t gnrc_nettype_to_protnum(gnrc_nettype_t type)
 {
     switch (type) {
+#ifdef MODULE_GNRC_ICMPV4
+        case GNRC_NETTYPE_ICMPV4:
+            return PROTNUM_ICMPV4;
+#endif
 #ifdef MODULE_GNRC_ICMPV6
         case GNRC_NETTYPE_ICMPV6:
             return PROTNUM_ICMPV6;
