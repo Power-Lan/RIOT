@@ -91,6 +91,20 @@ static inline bool ipv4_addr_is_loopback(const ipv4_addr_t *addr)
 }
 
 /**
+ * @brief   Check if @p addr is a multicast address.
+ *
+ *
+ * @param[in] addr  An IPv4 address.
+ *
+ * @return  true, if @p addr is multicast address,
+ * @return  false, otherwise.
+ */
+static inline bool ipv4_addr_is_multicast(const ipv4_addr_t *addr)
+{
+    return (addr->u8[0] >= 224 && addr->u8[0] < 240);
+}
+
+/**
  * @brief   Checks if two IPv4 addresses are equal.
  *
  * @param[in] a     An IPv4 address.
