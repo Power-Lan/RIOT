@@ -106,6 +106,26 @@ static inline bool ipv4_addr_is_multicast(const ipv4_addr_t *addr)
 }
 
 /**
+ * @brief   Sets @p addr dynamically to the unspecified IPv4 address (0.0.0.0).
+ *
+ * @param[in,out] addr  The address to set.
+ */
+static inline void ipv4_addr_set_unspecified(ipv6_addr_t *addr)
+{
+    memset(addr, 0, sizeof(ipv6_addr_t));
+}
+
+/**
+ * @brief   Sets @p addr dynamically to the loopback IPv4 address (127.0.0.1).
+ *
+ * @param[in,out] addr  The address to set.
+ */
+static inline void ipv4_addr_set_loopback(ipv4_addr_t *addr)
+{
+    memcpy(addr, &ipv4_addr_loopback, sizeof(ipv4_addr_t));
+}
+
+/**
  * @brief   Checks if two IPv4 addresses are equal.
  *
  * @param[in] a     An IPv4 address.
