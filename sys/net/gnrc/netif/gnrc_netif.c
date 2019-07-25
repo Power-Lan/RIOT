@@ -856,6 +856,31 @@ int gnrc_netif_ipv6_addr_match(gnrc_netif_t *netif,
     return idx;
 }
 
+ipv4_addr_t *gnrc_netif_ipv4_addr_best_src(gnrc_netif_t *netif,
+                                           const ipv4_addr_t *dst,
+                                           bool ll_only)
+{
+    ipv4_addr_t *best_src = NULL;
+
+    BITFIELD(candidate_set, GNRC_NETIF_IPV4_ADDRS_NUMOF);
+
+    assert((netif != NULL) && (dst != NULL));
+    DEBUG("gnrc_netif: get best source address for %s\n",
+          ipv4_addr_to_str(addr_str, dst, sizeof(addr_str)));
+    memset(candidate_set, 0, sizeof(candidate_set));
+    gnrc_netif_acquire(netif);
+    int first_candidate = _create_candidate_set(netif, dst, ll_only,
+                                                candidate_set);
+    if (first_candidate >= 0) {
+        best_src = _src_addr_selection(netif, dst, candidate_set);
+        if (best_src == NULL) {
+            best_src = &(netif->ipv4.addrs[first_candidate]);
+        }
+    }
+    gnrc_netif_release(netif);
+    return best_src;
+}
+
 ipv6_addr_t *gnrc_netif_ipv6_addr_best_src(gnrc_netif_t *netif,
                                            const ipv6_addr_t *dst,
                                            bool ll_only)
