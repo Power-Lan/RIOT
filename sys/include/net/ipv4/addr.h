@@ -110,9 +110,9 @@ static inline bool ipv4_addr_is_multicast(const ipv4_addr_t *addr)
  *
  * @param[in,out] addr  The address to set.
  */
-static inline void ipv4_addr_set_unspecified(ipv6_addr_t *addr)
+static inline void ipv4_addr_set_unspecified(ipv4_addr_t *addr)
 {
-    memset(addr, 0, sizeof(ipv6_addr_t));
+    memset(addr, 0, sizeof(ipv4_addr_t));
 }
 
 /**
@@ -134,7 +134,7 @@ static inline void ipv4_addr_set_loopback(ipv4_addr_t *addr)
  * @return  true, if @p a and @p b are equal
  * @return  false, otherwise.
  */
-static inline bool ipv4_addr_equal(ipv4_addr_t *a, ipv4_addr_t *b)
+static inline bool ipv4_addr_equal(const ipv4_addr_t *a,const ipv4_addr_t *b)
 {
     return (a->u32.u32 == b->u32.u32);
 }

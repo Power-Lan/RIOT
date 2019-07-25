@@ -26,8 +26,8 @@
 #include <stdio.h>
 #endif
 
-const ipv6_addr_t ipv4_addr_unspecified = IPV4_ADDR_UNSPECIFIED;
-const ipv6_addr_t ipv4_addr_loopback = IPV4_ADDR_LOOPBACK;
+const ipv4_addr_t ipv4_addr_unspecified = IPV4_ADDR_UNSPECIFIED;
+const ipv4_addr_t ipv4_addr_loopback = IPV4_ADDR_LOOPBACK;
 
 /**
  * @}

@@ -56,6 +56,26 @@ void gnrc_netif_acquire(gnrc_netif_t *netif);
  */
 void gnrc_netif_release(gnrc_netif_t *netif);
 
+#if defined(MODULE_GNRC_IPV4) || DOXYGEN
+int gnrc_netif_ipv4_addr_add_internal(gnrc_netif_t *netif,
+                                      const ipv4_addr_t *addr,
+                                      unsigned pfx_len, uint8_t flags);
+
+/**
+ * @brief   Removes an IPv4 address from the interface
+ *
+ * @pre `(netif != NULL) && (addr != NULL)`
+ *
+ * @param[in,out] netif the network interface
+ * @param[in] addr      the address to remove
+ *
+ * @note    Only available with @ref net_gnrc_ipv4 "gnrc_ipv4".
+ */
+void gnrc_netif_ipv4_addr_remove_internal(gnrc_netif_t *netif,
+                                          const ipv4_addr_t *addr);
+
+#endif  /* MODULE_GNRC_IPV4 */
+
 #if defined(MODULE_GNRC_IPV6) || DOXYGEN
 /**
  * @brief   Adds an IPv6 address to the interface

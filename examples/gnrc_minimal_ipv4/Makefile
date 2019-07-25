@@ -19,7 +19,8 @@ DEVELHELP ?= 1
 # NOTE: 6LoWPAN will be included if IEEE802.15.4 devices are present
 USEMODULE += gnrc_netdev_default
 USEMODULE += auto_init_gnrc_netif
-# Specify the minimum networking modules for IPv6
+# Specify the minimum networking modules for IPv4
+USEMODULE += ipv4_addr
 USEMODULE += gnrc_ipv4
 # Additional networking modules that can be dropped if not needed
 #USEMODULE += gnrc_icmpv4_echo

@@ -25,6 +25,7 @@
 #include "net/gnrc.h"
 #include "net/gnrc/netif.h"
 #include "shell.h"
+#include "xtimer.h"
 
 
 #define MAIN_QUEUE_SIZE     (8)
@@ -47,20 +48,24 @@ int main(void)
     /* get interfaces and print their addresses */
     gnrc_netif_t *netif = NULL;
     netif = gnrc_netif_iter(netif);
-        ipv4_addr_t ipv4_addrs[GNRC_NETIF_IPV4_ADDRS_NUMOF];
-        int res = gnrc_netapi_get(netif->pid, NETOPT_IPV4_ADDR, 0, ipv4_addrs,
-                                  sizeof(ipv4_addrs));
-
-        if (res < 0) {
-            
-        } else {
+    ipv4_addr_t ipv4_addrs[GNRC_NETIF_IPV4_ADDRS_NUMOF];
+    ipv4_addr_t set_ipv4_addr = {{192, 168, 11, 222}};
+    printf("My netif->pid is %d\n", netif->pid);
+    xtimer_usleep(20000);
+    int res = gnrc_netapi_set(netif->pid, NETOPT_IPV4_ADDR, 0, &set_ipv4_addr, sizeof(set_ipv4_addr));
+    printf("My res= is %d\n", res);
+    res = gnrc_netapi_get(netif->pid, NETOPT_IPV4_ADDR, 0, ipv4_addrs, sizeof(ipv4_addrs));
+    printf("My res= is %d\n", res);
+    if (res < 0) {
+        
+    } else {
         for (unsigned i = 0; i < (unsigned)(res / sizeof(ipv4_addr_t)); i++) {
-            //char ipv4_addr[IPV4_ADDR_MAX_STR_LEN];
+            char ipv4_addr[IPV4_ADDR_MAX_STR_LEN];
 
             //ipv4_addr = ipv4_addr_to_str(ipv4_addr, &ipv4_addrs[i], IPV4_ADDR_MAX_STR_LEN);
-            //printf("My address is %s\n", ipv4_addr_to_str(ipv4_addr, &ipv4_addrs[i], IPV4_ADDR_MAX_STR_LEN));
+            printf("My address is %s\n", ipv4_addr_to_str(ipv4_addr, &ipv4_addrs[i], IPV4_ADDR_MAX_STR_LEN));
         }
-	}
+    }
 
 
 

@@ -17,7 +17,7 @@
 #include "od.h"
 #include "net/gnrc/icmpv4.h"
 #include "net/gnrc/icmpv4/echo.h"
-#include "net/ipv4/hdr.h"
+#include "net/gnrc/ipv4/hdr.h"
 #include "utlist.h"
 
 #define ENABLE_DEBUG    (0)
