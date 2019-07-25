@@ -74,6 +74,22 @@ int gnrc_netif_ipv4_addr_add_internal(gnrc_netif_t *netif,
 void gnrc_netif_ipv4_addr_remove_internal(gnrc_netif_t *netif,
                                           const ipv4_addr_t *addr);
 
+ipv4_addr_t *gnrc_netif_ipv4_addr_best_src(gnrc_netif_t *netif,
+                                           const ipv4_addr_t *dst,
+                                           bool ll_only);
+
+/**
+ * @brief   Gets an interface by an address (incl. multicast groups) assigned
+ *          to it.
+ *
+ * @pre `addr != NULL`
+ *
+ * @param[in] addr  an IPv4 address
+ *
+ * @return  The network interface that has @p addr assigned
+ * @return  NULL, if no interface has @p addr assigned
+ */
+gnrc_netif_t *gnrc_netif_get_by_ipv4_addr(const ipv4_addr_t *addr);
 #endif  /* MODULE_GNRC_IPV4 */
 
 #if defined(MODULE_GNRC_IPV6) || DOXYGEN
@@ -200,10 +216,6 @@ static inline uint8_t gnrc_netif_ipv6_addr_dad_trans(const gnrc_netif_t *netif,
 int gnrc_netif_ipv6_addr_match(gnrc_netif_t *netif,
                                const ipv6_addr_t *addr);
 
-
-ipv4_addr_t *gnrc_netif_ipv4_addr_best_src(gnrc_netif_t *netif,
-                                           const ipv4_addr_t *dst,
-                                           bool ll_only);
 /**
  * @brief   Searches for the best address on an interface usable as a source
  *          address for a given destination address.
@@ -233,19 +245,6 @@ ipv4_addr_t *gnrc_netif_ipv4_addr_best_src(gnrc_netif_t *netif,
 ipv6_addr_t *gnrc_netif_ipv6_addr_best_src(gnrc_netif_t *netif,
                                            const ipv6_addr_t *dst,
                                            bool ll_only);
-
-/**
- * @brief   Gets an interface by an address (incl. multicast groups) assigned
- *          to it.
- *
- * @pre `addr != NULL`
- *
- * @param[in] addr  an IPv4 address
- *
- * @return  The network interface that has @p addr assigned
- * @return  NULL, if no interface has @p addr assigned
- */
-gnrc_netif_t *gnrc_netif_get_by_ipv4_addr(const ipv4_addr_t *addr);
 
 /**
  * @brief   Gets an interface by an address (incl. multicast groups) assigned
