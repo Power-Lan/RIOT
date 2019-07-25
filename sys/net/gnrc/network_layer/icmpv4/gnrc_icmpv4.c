@@ -22,7 +22,6 @@
 #include "byteorder.h"
 #include "net/ipv4/hdr.h"
 #include "net/gnrc.h"
-#include "net/gnrc/ipv4/nib.h"
 #include "net/protnum.h"
 #include "od.h"
 #include "utlist.h"

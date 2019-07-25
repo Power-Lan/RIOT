@@ -30,7 +30,7 @@
 #include "msg.h"
 #include "net/gnrc.h"
 #include "net/gnrc/icmpv4.h"
-#include "net/icmpv4.h"
+#include "net/icmp.h"
 #include "net/ipv4.h"
 #include "timex.h"
 #include "utlist.h"

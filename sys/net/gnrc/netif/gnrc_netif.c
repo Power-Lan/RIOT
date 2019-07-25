@@ -171,14 +171,6 @@ int gnrc_netif_get_from_netdev(gnrc_netif_t *netif, gnrc_netapi_opt_t *opt)
                 }
             }
             break;
-        case NETOPT_MAX_PDU_SIZE:
-            if (opt->context == GNRC_NETTYPE_IPV4) {
-                assert(opt->data_len == sizeof(uint16_t));
-                *((uint16_t *)opt->data) = netif->ipv4.mtu;
-                res = sizeof(uint16_t);
-            }
-            /* else ask device */
-            break;
 #endif  /* MODULE_GNRC_IPV4 */
 #ifdef MODULE_GNRC_IPV6
         case NETOPT_IPV6_ADDR: {
@@ -233,14 +225,6 @@ int gnrc_netif_get_from_netdev(gnrc_netif_t *netif, gnrc_netapi_opt_t *opt)
             assert(opt->data_len >= sizeof(eui64_t));
             res = gnrc_netif_ipv6_get_iid(netif, opt->data);
             break;
-        case NETOPT_MAX_PDU_SIZE:
-            if (opt->context == GNRC_NETTYPE_IPV6) {
-                assert(opt->data_len == sizeof(uint16_t));
-                *((uint16_t *)opt->data) = netif->ipv6.mtu;
-                res = sizeof(uint16_t);
-            }
-            /* else ask device */
-            break;
 #if GNRC_IPV6_NIB_CONF_ROUTER
         case NETOPT_IPV6_FORWARDING:
             assert(opt->data_len == sizeof(netopt_enable_t));
@@ -256,6 +240,20 @@ int gnrc_netif_get_from_netdev(gnrc_netif_t *netif, gnrc_netapi_opt_t *opt)
             break;
 #endif  /* GNRC_IPV6_NIB_CONF_ROUTER */
 #endif  /* MODULE_GNRC_IPV6 */
+#if defined(MODULE_GNRC_IPV6) || defined(MODULE_GNRC_IPV4)
+        case NETOPT_MAX_PDU_SIZE:
+            if (opt->context == GNRC_NETTYPE_IPV6) {
+                assert(opt->data_len == sizeof(uint16_t));
+                *((uint16_t *)opt->data) = netif->ipv6.mtu;
+                res = sizeof(uint16_t);
+            }
+            if (opt->context == GNRC_NETTYPE_IPV4) {
+                assert(opt->data_len == sizeof(uint16_t));
+                *((uint16_t *)opt->data) = netif->ipv4.mtu;
+                res = sizeof(uint16_t);
+            }
+            break;
+#endif
 #ifdef MODULE_GNRC_SIXLOWPAN_IPHC
         case NETOPT_6LO_IPHC:
             assert(opt->data_len == sizeof(netopt_enable_t));
@@ -310,14 +308,6 @@ int gnrc_netif_set_from_netdev(gnrc_netif_t *netif,
             gnrc_netif_ipv4_addr_remove_internal(netif, opt->data);
             res = sizeof(ipv4_addr_t);
             break;
-        case NETOPT_MAX_PDU_SIZE:
-            if (opt->context == GNRC_NETTYPE_IPV4) {
-                assert(opt->data_len == sizeof(uint16_t));
-                netif->ipv4.mtu = *((uint16_t *)opt->data);
-                res = sizeof(uint16_t);
-            }
-            /* else set device */
-            break;
 #endif  /* MODULE_GNRC_IPV4 */
 #ifdef MODULE_GNRC_IPV6
         case NETOPT_IPV6_ADDR: {
@@ -359,14 +349,6 @@ int gnrc_netif_set_from_netdev(gnrc_netif_t *netif,
             gnrc_netif_ipv6_group_leave_internal(netif, opt->data);
             res = sizeof(ipv6_addr_t);
             break;
-        case NETOPT_MAX_PDU_SIZE:
-            if (opt->context == GNRC_NETTYPE_IPV6) {
-                assert(opt->data_len == sizeof(uint16_t));
-                netif->ipv6.mtu = *((uint16_t *)opt->data);
-                res = sizeof(uint16_t);
-            }
-            /* else set device */
-            break;
 #if GNRC_IPV6_NIB_CONF_ROUTER
         case NETOPT_IPV6_FORWARDING:
             assert(opt->data_len == sizeof(netopt_enable_t));
@@ -389,6 +371,21 @@ int gnrc_netif_set_from_netdev(gnrc_netif_t *netif,
             break;
 #endif  /* GNRC_IPV6_NIB_CONF_ROUTER */
 #endif  /* MODULE_GNRC_IPV6 */
+#if defined(MODULE_GNRC_IPV6) || defined(MODULE_GNRC_IPV4)
+        case NETOPT_MAX_PDU_SIZE:
+            if (opt->context == GNRC_NETTYPE_IPV6) {
+                assert(opt->data_len == sizeof(uint16_t));
+                netif->ipv6.mtu = *((uint16_t *)opt->data);
+                res = sizeof(uint16_t);
+            }
+            if (opt->context == GNRC_NETTYPE_IPV4) {
+                assert(opt->data_len == sizeof(uint16_t));
+                netif->ipv4.mtu = *((uint16_t *)opt->data);
+                res = sizeof(uint16_t);
+            }
+            /* else set device */
+            break;
+#endif
 #ifdef MODULE_GNRC_SIXLOWPAN_IPHC
         case NETOPT_6LO_IPHC:
             assert(opt->data_len == sizeof(netopt_enable_t));

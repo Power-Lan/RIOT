@@ -44,6 +44,23 @@ typedef struct __attribute__((packed)){
     network_uint16_t id;    /**< identifier */
     network_uint16_t sn;    /**< sequence number */
 } icmp_echo_t;
+typedef icmp_echo_t icmpv4_echo_t;
+
+/**
+ * @brief   Packet too big message format.
+ * @extends icmpv4_hdr_t
+ *
+ * @see <a href="https://tools.ietf.org/html/rfc4443#section-3.2">
+ *          RFC 4443, section 3.2
+ *      </a>
+ */
+typedef struct __attribute__((packed)){
+    uint8_t type;           /**< message type */
+    uint8_t code;           /**< message code */
+    network_uint16_t csum;  /**< checksum */
+} icmp_hdr_t;
+
+typedef icmp_hdr_t icmpv4_hdr_t;
 
 #define ICMPV4_ECHO_REP     (0)   /**< Echo reply message (pong) */
 #define ICMPV4_DST_UNR      (3)   /**< Destination unreachable */
