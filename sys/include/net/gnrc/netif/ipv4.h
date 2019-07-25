@@ -89,6 +89,7 @@ typedef struct {
      * @note    Only available with module @ref net_gnrc_ipv6 "gnrc_ipv6".
      */
     ipv4_addr_t addrs[GNRC_NETIF_IPV4_ADDRS_NUMOF];
+    ipv4_addr_t addrs_mask[GNRC_NETIF_IPV4_ADDRS_NUMOF];
 
     /**
      * @brief   IPv6 multicast groups of the interface

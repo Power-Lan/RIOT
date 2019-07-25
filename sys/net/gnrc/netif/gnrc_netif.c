@@ -553,18 +553,14 @@ int gnrc_netif_ipv4_addr_add_internal(gnrc_netif_t *netif,
                                       unsigned pfx_len, uint8_t flags)
 {
     unsigned idx = UINT_MAX;
+    ipv4_addr_t addr_mask;
 
     assert((netif != NULL) && (addr != NULL));
     assert(!(ipv4_addr_is_multicast(addr) || ipv4_addr_is_unspecified(addr) ||
              ipv4_addr_is_loopback(addr)));
-    assert((pfx_len > 0) && (pfx_len <= 32));
+    assert(pfx_len <= 32);
+    addr_mask = ipv4_mask_to_addr(pfx_len);
     gnrc_netif_acquire(netif);
-    if ((flags & GNRC_NETIF_IPV4_ADDRS_FLAGS_STATE_MASK) ==
-        GNRC_NETIF_IPV4_ADDRS_FLAGS_STATE_TENTATIVE) {
-        /* set to first retransmission */
-        flags &= ~GNRC_NETIF_IPV4_ADDRS_FLAGS_STATE_TENTATIVE;
-        flags |= 0x1;
-    }
     for (unsigned i = 0; i < GNRC_NETIF_IPV4_ADDRS_NUMOF; i++) {
         if (ipv4_addr_equal(&netif->ipv4.addrs[i], addr)) {
             gnrc_netif_release(netif);
@@ -579,8 +575,9 @@ int gnrc_netif_ipv4_addr_add_internal(gnrc_netif_t *netif,
         return -ENOMEM;
     }
 
-    netif->ipv4.addrs_flags[idx] = flags;
+    netif->ipv4.addrs_flags[idx] = 1;
     memcpy(&netif->ipv4.addrs[idx], addr, sizeof(netif->ipv4.addrs[idx]));
+    memcpy(&netif->ipv4.addrs_mask[idx], &addr_mask, sizeof(netif->ipv4.addrs_mask[idx]));
 
     (void)pfx_len;
 
