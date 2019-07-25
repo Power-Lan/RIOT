@@ -12,9 +12,7 @@
  * @file
  */
 
-#include <stdlib.h>
-#include <string.h>
-
+#include "assert.h"
 #include "net/ipv4/addr.h"
 
 ipv4_addr_t ipv4_mask_to_addr(const uint8_t mask)
