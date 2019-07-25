@@ -14,6 +14,7 @@
 
 #include "net/ipv4.h"
 #include "net/gnrc/icmpv4.h"
+#include "net/gnrc/ipv4/hdr.h"
 #include "net/gnrc/netif.h"
 #include "net/gnrc/pktbuf.h"
 

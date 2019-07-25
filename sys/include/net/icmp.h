@@ -59,8 +59,43 @@ typedef struct __attribute__((packed)){
     uint8_t code;           /**< message code */
     network_uint16_t csum;  /**< checksum */
 } icmp_hdr_t;
-
 typedef icmp_hdr_t icmpv4_hdr_t;
+
+/**
+ * @brief   Destination unreachable message format.
+ * @extends icmpv4_hdr_t
+ */
+typedef struct __attribute__((packed)) {
+    uint8_t type;               /**< message type */
+    uint8_t code;               /**< message code */
+    network_uint16_t csum;      /**< checksum */
+    network_uint32_t unused;    /**< unused field */
+} icmp_error_dst_unr_t;
+typedef icmp_error_dst_unr_t icmpv4_error_dst_unr_t;
+
+/**
+ * @brief   Packet too big message format.
+ * @extends icmpv4_hdr_t
+ */
+typedef struct __attribute__((packed)) {
+    uint8_t type;           /**< message type */
+    uint8_t code;           /**< message code */
+    network_uint16_t csum;  /**< checksum */
+    network_uint32_t mtu;   /**< MTU */
+} icmp_error_pkt_too_big_t;
+typedef icmp_error_pkt_too_big_t icmpv4_error_pkt_too_big_t;
+
+/**
+ * @brief   Parameter problem message format.
+ * @extends icmpv4_hdr_t
+ */
+typedef struct __attribute__((packed)) {
+    uint8_t type;           /**< message type */
+    uint8_t code;           /**< message code */
+    network_uint16_t csum;  /**< checksum */
+    network_uint32_t ptr;   /**< pointer */
+} icmp_error_param_prob_t;
+typedef icmp_error_param_prob_t icmpv4_error_param_prob_t;
 
 #define ICMPV4_ECHO_REP     (0)   /**< Echo reply message (pong) */
 #define ICMPV4_DST_UNR      (3)   /**< Destination unreachable */

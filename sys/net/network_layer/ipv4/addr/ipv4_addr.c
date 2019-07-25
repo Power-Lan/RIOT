@@ -29,6 +29,22 @@
 const ipv4_addr_t ipv4_addr_unspecified = IPV4_ADDR_UNSPECIFIED;
 const ipv4_addr_t ipv4_addr_loopback = IPV4_ADDR_LOOPBACK;
 
+int ipv4_addr_split(char *addr_str, char seperator, int _default)
+{
+    char *sep = addr_str;
+    while(*++sep) {
+        if (*sep == seperator) {
+            *sep++ = '\0';
+            if (*sep) {
+                _default = atoi(sep);
+            }
+            break;
+        }
+    }
+
+    return _default;
+}
+
 /**
  * @}
  */

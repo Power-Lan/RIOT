@@ -30,6 +30,7 @@
 #include "msg.h"
 #include "net/gnrc.h"
 #include "net/gnrc/icmpv4.h"
+#include "net/gnrc/ipv4/hdr.h"
 #include "net/icmp.h"
 #include "net/ipv4.h"
 #include "timex.h"
@@ -288,7 +289,7 @@ static void _pinger(_ping_data_t *data)
     pkt = tmp;
     ipv4 = pkt->data;
     /* if data->hoplimit is unset (i.e. 0) gnrc_ipv4 will select hop limit */
-    ipv4->hl = data->hoplimit;
+    ipv4->ttl = data->hoplimit;
     if (data->iface > KERNEL_PID_UNDEF) {
         gnrc_netif_hdr_t *netif;
 
@@ -335,7 +336,7 @@ static void _print_reply(_ping_data_t *data, gnrc_pktsnip_t *icmpv4,
         if (byteorder_ntohs(icmpv4_hdr->id) != data->id) {
             return;
         }
-        recv_seq = byteorder_ntohs(icmpv4_hdr->seq);
+        recv_seq = byteorder_ntohs(icmpv4_hdr->sn);
         ipv4_addr_to_str(&from_str[0], from, sizeof(from_str));
         if (data->datalen >= sizeof(uint32_t)) {
             triptime = xtimer_now_usec() - *((uint32_t *)(icmpv4_hdr + 1));
@@ -383,7 +384,7 @@ static void _handle_reply(_ping_data_t *data, gnrc_pktsnip_t *pkt)
     }
     ipv4_hdr = ipv4->data;
     netif_hdr = netif ? netif->data : NULL;
-    _print_reply(data, icmpv4, &ipv4_hdr->src, ipv4_hdr->hl, netif_hdr ? netif_hdr->rssi : 0);
+    _print_reply(data, icmpv4, &ipv4_hdr->src, ipv4_hdr->ttl, netif_hdr ? netif_hdr->rssi : 0);
 }
 
 static int _finish(_ping_data_t *data)

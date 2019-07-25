@@ -140,6 +140,33 @@ static inline bool ipv4_addr_equal(const ipv4_addr_t *a,const ipv4_addr_t *b)
 }
 
 /**
+ * @brief split IPv4 address string representation
+ *
+ * @note Will change @p seperator position in @p addr_str to '\0'
+ *
+ * @param[in,out]   addr_str    Address to split
+ * @param[in]       seperator   Seperator char to use
+ * @param[in]       _default    Default value
+ *
+ * @return      atoi(string after split)
+ * @return      @p _default if no string after @p seperator
+ */
+int ipv4_addr_split(char *addr_str, char seperator, int _default);
+
+/**
+ * @brief split IPv4 address + interface specifier
+ *
+ * E.g., "192.168.0.1%5" returns "5", changes @p addr_str to "192.168.0.1"
+ *
+ * @param[in,out]   addr_str Address to split
+ * @return          interface number or -1 if none specified
+ */
+static inline int ipv4_addr_split_iface(char *addr_str)
+{
+    return ipv4_addr_split(addr_str, '%', -1);
+}
+
+/**
  * @brief   Converts an IPv4 address to its string representation
  *
  * @param[out] result       The resulting string representation of at least

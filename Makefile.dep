@@ -263,7 +263,6 @@ endif
 ifneq (,$(filter gnrc_icmpv4,$(USEMODULE)))
   USEMODULE += inet_csum
   USEMODULE += gnrc_ipv4
-  USEMODULE += icmpv4
 endif
 
 ifneq (,$(filter gnrc_rpl_srh,$(USEMODULE)))

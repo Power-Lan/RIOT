@@ -28,16 +28,15 @@ USEMODULE += prng_minstd
 
 # This application dumps received packets to STDIO using the pktdump module
 USEMODULE += gnrc_pktdump
-# Additional networking modules that can be dropped if not needed
-USEMODULE += gnrc_icmpv4_echo
+
 # Add also the shell, some shell commands
 USEMODULE += shell
 USEMODULE += shell_commands
 USEMODULE += ps
 
-
-USEMODULE += gnrc_icmpv6_echo
-USEMODULE += gnrc_icmpv6_error
+# Ping support
+USEMODULE += gnrc_icmpv4_echo
+USEMODULE += gnrc_icmpv4_error
 
 
 CFLAGS += -DGNRC_PKTBUF_SIZE=512 -DGNRC_NETIF_IPV4_ADDRS_NUMOF=2 \

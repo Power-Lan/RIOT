@@ -242,16 +242,20 @@ int gnrc_netif_get_from_netdev(gnrc_netif_t *netif, gnrc_netapi_opt_t *opt)
 #endif  /* MODULE_GNRC_IPV6 */
 #if defined(MODULE_GNRC_IPV6) || defined(MODULE_GNRC_IPV4)
         case NETOPT_MAX_PDU_SIZE:
+            #if MODULE_GNRC_IPV6
             if (opt->context == GNRC_NETTYPE_IPV6) {
                 assert(opt->data_len == sizeof(uint16_t));
                 *((uint16_t *)opt->data) = netif->ipv6.mtu;
                 res = sizeof(uint16_t);
             }
+            #endif
+            #if MODULE_GNRC_IPV4
             if (opt->context == GNRC_NETTYPE_IPV4) {
                 assert(opt->data_len == sizeof(uint16_t));
                 *((uint16_t *)opt->data) = netif->ipv4.mtu;
                 res = sizeof(uint16_t);
             }
+            #endif
             break;
 #endif
 #ifdef MODULE_GNRC_SIXLOWPAN_IPHC
@@ -373,16 +377,20 @@ int gnrc_netif_set_from_netdev(gnrc_netif_t *netif,
 #endif  /* MODULE_GNRC_IPV6 */
 #if defined(MODULE_GNRC_IPV6) || defined(MODULE_GNRC_IPV4)
         case NETOPT_MAX_PDU_SIZE:
+            #if MODULE_GNRC_IPV6
             if (opt->context == GNRC_NETTYPE_IPV6) {
                 assert(opt->data_len == sizeof(uint16_t));
                 netif->ipv6.mtu = *((uint16_t *)opt->data);
                 res = sizeof(uint16_t);
             }
+            #endif
+            #if MODULE_GNRC_IPV4
             if (opt->context == GNRC_NETTYPE_IPV4) {
                 assert(opt->data_len == sizeof(uint16_t));
                 netif->ipv4.mtu = *((uint16_t *)opt->data);
                 res = sizeof(uint16_t);
             }
+            #endif
             /* else set device */
             break;
 #endif
