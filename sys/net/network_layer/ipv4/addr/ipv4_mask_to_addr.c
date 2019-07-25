@@ -1,0 +1,31 @@
+/*
+ * Copyright (C) 2019 William MARTIN <william.martin@power-lan.com>
+ *
+ * This file is subject to the terms and conditions of the GNU Lesser
+ * General Public License v2.1. See the file LICENSE in the top level
+ * directory for more details.
+ */
+
+/**
+ * @{
+ *
+ * @file
+ */
+
+#include <stdlib.h>
+#include <string.h>
+
+#include "net/ipv4/addr.h"
+
+ipv4_addr_t *ipv4_mask_to_addr(const uint8_t mask)
+{
+    ipv4_addr_t addr;
+
+    addr.u32 = 0xFFFFFFFF;
+    addr.u32 = (addr.u32 << (32 - mask));
+
+    return addr;
+}
+
+
+/** @} */

@@ -81,7 +81,7 @@ typedef struct {
     gnrc_netif_ipv6_t ipv6;                 /**< IPv6 component */
 #endif
 #if defined(MODULE_GNRC_IPV4) || DOXYGEN
-    gnrc_netif_ipv4_t ipv4;                 /**< IPv6 component */
+    gnrc_netif_ipv4_t ipv4;                 /**< IPv4 component */
 #endif
 #if defined(MODULE_GNRC_MAC) || DOXYGEN
     gnrc_netif_mac_t mac;                  /**< @ref net_gnrc_mac component */
