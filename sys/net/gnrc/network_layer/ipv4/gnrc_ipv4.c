@@ -282,7 +282,7 @@ static void _send(gnrc_pktsnip_t *pkt, bool prep_hdr)
 
     // Ensure is a dst IP is set
     if (ipv4_addr_is_unspecified(&((ipv4_hdr_t *)pkt->data)->dst)) {
-        DEBUG("ipv46: destination address is unspecified address (0.0.0.0), "
+        DEBUG("ipv4: destination address is unspecified address (0.0.0.0), "
               "dropping packet \n");
         gnrc_pktbuf_release_error(pkt, EINVAL);
         return;
