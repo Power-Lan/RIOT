@@ -17,13 +17,13 @@
 
 #include "net/ipv4/addr.h"
 
-ipv4_addr_t *ipv4_mask_to_addr(const uint8_t mask)
+ipv4_addr_t ipv4_mask_to_addr(const uint8_t mask)
 {
     ipv4_addr_t addr;
 
-    addr.u32 = 0xFFFFFFFF;
-    addr.u32 = (addr.u32 << (32 - mask));
+    uint32_t m = ((uint32_t)0xFFFFFFFF << (32 - mask));
 
+    addr.u32 = byteorder_htonl(m);
     return addr;
 }
 
