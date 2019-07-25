@@ -90,6 +90,22 @@ ipv4_addr_t *gnrc_netif_ipv4_addr_best_src(gnrc_netif_t *netif,
  * @return  NULL, if no interface has @p addr assigned
  */
 gnrc_netif_t *gnrc_netif_get_by_ipv4_addr(const ipv4_addr_t *addr);
+
+/**
+ * @brief   Gets number of duplicate address detection transmissions already
+ *          performed for an address
+ *
+ * @param[in] netif the network interface
+ * @param[in] idx   index of the address (and its flags)
+ *
+ * @return  the number of duplicate address detection transmissions already
+ *          performed
+ */
+static inline uint8_t gnrc_netif_ipv4_addr_dad_trans(const gnrc_netif_t *netif,
+                                                     int idx)
+{
+    return netif->ipv4.addrs_flags[idx] & GNRC_NETIF_IPV4_ADDRS_FLAGS_STATE_TENTATIVE;
+}
 #endif  /* MODULE_GNRC_IPV4 */
 
 #if defined(MODULE_GNRC_IPV6) || DOXYGEN

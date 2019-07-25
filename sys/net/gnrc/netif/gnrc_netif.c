@@ -553,6 +553,27 @@ void gnrc_netif_release(gnrc_netif_t *netif)
 }
 
 #if defined(MODULE_GNRC_IPV4)
+static char ipv4_addr_str[IPV4_ADDR_MAX_STR_LEN];
+
+static int _create_ipv4_candidate_set(const gnrc_netif_t *netif,
+                                 const ipv4_addr_t *dst, bool ll_only,
+                                 uint8_t *candidate_set);
+
+static ipv4_addr_t *_src_ipv4_addr_selection(gnrc_netif_t *netif,
+                                        const ipv4_addr_t *dst,
+                                        uint8_t *candidate_set);
+
+static int _ipv4_idx(const gnrc_netif_t *netif, const ipv4_addr_t *addr, bool mcast);
+static inline int _ipv4_addr_idx(const gnrc_netif_t *netif, const ipv4_addr_t *addr);
+static inline int _ipv4_group_idx(const gnrc_netif_t *netif, const ipv4_addr_t *addr);
+static uint8_t _ipv4_get_scope(const ipv4_addr_t *addr);
+static inline unsigned _ipv4_get_state(const gnrc_netif_t *netif, unsigned idx);
+static int _ipv4_match_to_idx(const gnrc_netif_t *netif,
+                         const ipv4_addr_t *addr,
+                         const uint8_t *filter);
+static inline bool _addr_anycast(const gnrc_netif_t *netif, unsigned idx);
+
+
 int gnrc_netif_ipv4_addr_add_internal(gnrc_netif_t *netif,
                                       const ipv4_addr_t *addr,
                                       unsigned pfx_len, uint8_t flags)
@@ -619,6 +640,309 @@ void gnrc_netif_ipv4_addr_remove_internal(gnrc_netif_t *netif,
         //gnrc_netif_ipv4_group_leave_internal(netif, &sol_nodes);
     }
     gnrc_netif_release(netif);
+}
+
+ipv4_addr_t *gnrc_netif_ipv4_addr_best_src(gnrc_netif_t *netif,
+                                           const ipv4_addr_t *dst,
+                                           bool ll_only)
+{
+    ipv4_addr_t *best_src = NULL;
+
+    BITFIELD(candidate_set, GNRC_NETIF_IPV4_ADDRS_NUMOF);
+
+    assert((netif != NULL) && (dst != NULL));
+    DEBUG("gnrc_netif: get best source address for %s\n",
+          ipv4_addr_to_str(ipv4_addr_str, dst, sizeof(ipv4_addr_str)));
+    memset(candidate_set, 0, sizeof(candidate_set));
+    gnrc_netif_acquire(netif);
+    int first_candidate = _create_ipv4_candidate_set(netif, dst, ll_only,
+                                                candidate_set);
+    if (first_candidate >= 0) {
+        best_src = _src_ipv4_addr_selection(netif, dst, candidate_set);
+        if (best_src == NULL) {
+            best_src = &(netif->ipv4.addrs[first_candidate]);
+        }
+    }
+    gnrc_netif_release(netif);
+    return best_src;
+}
+
+gnrc_netif_t *gnrc_netif_get_by_ipv4_addr(const ipv4_addr_t *addr)
+{
+    gnrc_netif_t *netif = NULL;
+
+    DEBUG("gnrc_netif: get interface by IPv4 address %s\n",
+          ipv4_addr_to_str(ipv4_addr_str, addr, sizeof(ipv4_addr_str)));
+    while ((netif = gnrc_netif_iter(netif))) {
+        if (_ipv4_addr_idx(netif, addr) >= 0) {
+            break;
+        }
+        if (_ipv4_group_idx(netif, addr) >= 0) {
+            break;
+        }
+    }
+    return netif;
+}
+
+static inline int _ipv4_group_idx(const gnrc_netif_t *netif, const ipv4_addr_t *addr)
+{
+    return _ipv4_idx(netif, addr, true);
+}
+
+static int _ipv4_idx(const gnrc_netif_t *netif, const ipv4_addr_t *addr, bool mcast)
+{
+    if (!ipv4_addr_is_unspecified(addr)) {
+        const ipv4_addr_t *iplist = (mcast) ? netif->ipv4.groups : netif->ipv4.addrs;
+        unsigned ipmax = (mcast) ? GNRC_NETIF_IPV4_GROUPS_NUMOF : GNRC_NETIF_IPV4_ADDRS_NUMOF;
+        for (unsigned i = 0; i < ipmax; i++) {
+            if (ipv4_addr_equal(&iplist[i], addr)) {
+                return i;
+            }
+        }
+    }
+    return -1;
+}
+
+static inline int _ipv4_addr_idx(const gnrc_netif_t *netif, const ipv4_addr_t *addr)
+{
+    return _ipv4_idx(netif, addr, false);
+}
+
+static uint8_t _ipv4_get_scope(const ipv4_addr_t *addr)
+{
+    if (ipv4_addr_is_link_local(addr)) {
+        return IPV4_ADDR_MCAST_SCP_LINK_LOCAL;
+    }
+    else {
+        return IPV4_ADDR_MCAST_SCP_GLOBAL;
+    }
+}
+
+static inline unsigned _ipv4_get_state(const gnrc_netif_t *netif, unsigned idx)
+{
+    return (netif->ipv4.addrs_flags[idx] & GNRC_NETIF_IPV4_ADDRS_FLAGS_STATE_MASK);
+}
+
+static int _ipv4_match_to_idx(const gnrc_netif_t *netif,
+                         const ipv4_addr_t *addr,
+                         const uint8_t *filter)
+{
+    assert((netif != NULL) && (addr != NULL));
+
+    int idx = -1;
+    unsigned best_match = 0;
+    for (int i = 0; i < GNRC_NETIF_IPV4_ADDRS_NUMOF; i++) {
+        unsigned match;
+
+        if ((netif->ipv4.addrs_flags[i] == 0) ||
+            ((filter != NULL) && _addr_anycast(netif, i)) ||
+            /* discard const intentionally */
+            ((filter != NULL) && !(bf_isset((uint8_t *)filter, i)))) {
+            continue;
+        }
+        match = ipv4_addr_match_prefix(&(netif->ipv4.addrs[i]), &(netif->ipv4.addrs_mask[i]), addr);
+        if (((match > 64U) || !ipv4_addr_is_link_local(&(netif->ipv4.addrs[i]))) &&
+            (match >= best_match)) {
+            idx = i;
+            best_match = match;
+        }
+    }
+    if (idx != -1) {
+        DEBUG("gnrc_netif: Found %s on interface %" PRIkernel_pid " matching ",
+              ipv4_addr_to_str(ipv4_addr_str, &netif->ipv4.addrs[idx],
+                               sizeof(ipv4_addr_str)),
+              netif->pid);
+        DEBUG("%s by %u bits (used as source address = %s)\n",
+              ipv4_addr_to_str(ipv4_addr_str, addr, sizeof(ipv4_addr_str)),
+              best_match,
+              (filter != NULL) ? "true" : "false");
+    }
+    else {
+        DEBUG("gnrc_netif: Did not found any address on interface %" PRIkernel_pid
+              " matching %s (used as source address = %s)\n",
+              netif->pid,
+              ipv4_addr_to_str(ipv4_addr_str, addr, sizeof(ipv4_addr_str)),
+              (filter != NULL) ? "true" : "false");
+    }
+    return idx;
+}
+
+static inline bool _addr_anycast(const gnrc_netif_t *netif, unsigned idx)
+{
+    return (netif->ipv4.addrs_flags[idx] & GNRC_NETIF_IPV4_ADDRS_FLAGS_ANYCAST);
+}
+
+/**
+ * @brief selects potential source address candidates
+ * @see <a href="http://tools.ietf.org/html/rfc6724#section-4">
+ *      RFC6724, section 4
+ *      </a>
+ * @param[in]  netif            the interface used for sending
+ * @param[in]  dst              the destination address
+ * @param[in]  ll_only          only consider link-local addresses
+ * @param[out] candidate_set    a bitfield representing all addresses
+ *                              configured to @p netif, potential candidates
+ *                              will be marked as 1
+ *
+ * @return -1 if no candidates were found
+ * @return the index of the first candidate otherwise
+ *
+ * @pre the interface entry and its set of addresses must not be changed during
+ *      runtime of this function
+ */
+static int _create_ipv4_candidate_set(const gnrc_netif_t *netif,
+                                 const ipv4_addr_t *dst, bool ll_only,
+                                 uint8_t *candidate_set)
+{
+    int res = -1;
+
+    DEBUG("gathering source address candidates\n");
+    /* currently this implementation supports only addresses as source address
+     * candidates assigned to this interface. Thus we assume all addresses to be
+     * on interface @p netif */
+    (void) dst;
+    for (int i = 0; i < GNRC_NETIF_IPV4_ADDRS_NUMOF; i++) {
+        const ipv4_addr_t *tmp = &(netif->ipv4.addrs[i]);
+
+        DEBUG("Checking address: %s\n",
+              ipv4_addr_to_str(ipv4_addr_str, tmp, sizeof(ipv4_addr_str)));
+        /* "In any case, multicast addresses and the unspecified address MUST NOT
+         *  be included in a candidate set."
+         */
+        if ((netif->ipv4.addrs_flags[i] == 0) ||
+            gnrc_netif_ipv4_addr_dad_trans(netif, i)) {
+            continue;
+        }
+        /* Check if we only want link local addresses */
+        if (ll_only && !ipv4_addr_is_link_local(tmp)) {
+            continue;
+        }
+        /* "For all multicast and link-local destination addresses, the set of
+         *  candidate source addresses MUST only include addresses assigned to
+         *  interfaces belonging to the same link as the outgoing interface."
+         *
+         * "For site-local unicast destination addresses, the set of candidate
+         *  source addresses MUST only include addresses assigned to interfaces
+         *  belonging to the same site as the outgoing interface."
+         *  -> we should also be fine, since we're only iterating addresses of
+         *     the sending interface
+         */
+        /* put all other addresses into the candidate set */
+        DEBUG("add to candidate set\n");
+        bf_set(candidate_set, i);
+        if (res < 0) {
+            res = i;
+        }
+    }
+    return res;
+}
+
+/* number of "points" assigned to an source address candidate with equal scope
+ * than destination address */
+#define RULE_2A_PTS         (4)
+/* number of "points" assigned to an source address candidate with smaller scope
+ * than destination address */
+#define RULE_2B_PTS         (2)
+/* number of "points" assigned to an source address candidate in preferred state */
+#define RULE_3_PTS          (1)
+
+static ipv4_addr_t *_src_ipv4_addr_selection(gnrc_netif_t *netif,
+                                        const ipv4_addr_t *dst,
+                                        uint8_t *candidate_set)
+{
+    /* create temporary set for assigning "points" to candidates winning in the
+     * corresponding rules.
+     */
+    uint8_t winner_set[GNRC_NETIF_IPV4_ADDRS_NUMOF];
+
+    memset(winner_set, 0, GNRC_NETIF_IPV4_ADDRS_NUMOF);
+    uint8_t max_pts = 0;
+    /* _create_candidate_set() assures that `dst` is not unspecified and if
+     * `dst` is loopback rule 1 will fire anyway.  */
+    uint8_t dst_scope = _ipv4_get_scope(dst);
+
+    DEBUG("finding the best match within the source address candidates\n");
+    for (unsigned i = 0; i < GNRC_NETIF_IPV4_ADDRS_NUMOF; i++) {
+        ipv4_addr_t *ptr = &(netif->ipv4.addrs[i]);
+
+        DEBUG("Checking address: %s\n",
+              ipv4_addr_to_str(ipv4_addr_str, ptr, sizeof(ipv4_addr_str)));
+        /* entries which are not  part of the candidate set can be ignored */
+        if (!(bf_isset(candidate_set, i))) {
+            DEBUG("Not part of the candidate set - skipping\n");
+            continue;
+        }
+        /* Rule 1: if we have an address configured that equals the destination
+         * use this one as source */
+        if (ipv4_addr_equal(ptr, dst)) {
+            DEBUG("Ease one - rule 1\n");
+            return ptr;
+        }
+        /* Rule 2: Prefer appropriate scope. */
+        /* both link local */
+        uint8_t candidate_scope = _ipv4_get_scope(ptr);
+        if (candidate_scope == dst_scope) {
+            DEBUG("winner for rule 2 (same scope) found\n");
+            winner_set[i] += RULE_2A_PTS;
+            if (winner_set[i] > max_pts) {
+                max_pts = RULE_2A_PTS;
+            }
+        }
+        else if (candidate_scope < dst_scope) {
+            DEBUG("winner for rule 2 (smaller scope) found\n");
+            winner_set[i] += RULE_2B_PTS;
+            if (winner_set[i] > max_pts) {
+                max_pts = winner_set[i];
+            }
+        }
+        /* Rule 3: Avoid deprecated addresses. */
+        if (_ipv4_get_state(netif, i) == GNRC_NETIF_IPV4_ADDRS_FLAGS_STATE_DEPRECATED) {
+            DEBUG("winner for rule 3 found\n");
+            winner_set[i] += RULE_3_PTS;
+            if (winner_set[i] > max_pts) {
+                max_pts = winner_set[i];
+            }
+        }
+
+        /* Rule 4: Prefer home addresses.
+         * Does not apply, gnrc does not support Mobile IP.
+         * TODO: update as soon as gnrc supports Mobile IP
+         */
+
+        /* Rule 5: Prefer outgoing interface.
+         * RFC 6724 says:
+         * "It is RECOMMENDED that the candidate source addresses be the set of
+         *  unicast addresses assigned to the interface that will be used to
+         *  send to the destination (the "outgoing" interface).  On routers,
+         *  the candidate set MAY include unicast addresses assigned to any
+         *  interface that forwards packets, subject to the restrictions
+         *  described below."
+         *  Currently this implementation uses ALWAYS source addresses assigned
+         *  to the outgoing interface. Hence, Rule 5 is always fulfilled.
+         */
+
+        /* Rule 6: Prefer matching label.
+         * Flow labels are currently not supported by gnrc.
+         * TODO: update as soon as gnrc supports flow labels
+         */
+
+        /* Rule 7: Prefer temporary addresses.
+         * Temporary addresses are currently not supported by gnrc.
+         * TODO: update as soon as gnrc supports temporary addresses
+         */
+    }
+    /* reset candidate set to mark winners */
+    memset(candidate_set, 0, (GNRC_NETIF_IPV4_ADDRS_NUMOF + 7) / 8);
+    /* check if we have a clear winner */
+    /* collect candidates with maximum points */
+    for (int i = 0; i < GNRC_NETIF_IPV4_ADDRS_NUMOF; i++) {
+        if (winner_set[i] == max_pts) {
+            bf_set(candidate_set, i);
+        }
+    }
+    /* otherwise apply rule 8: Use longest matching prefix. */
+    int idx = _ipv4_match_to_idx(netif, dst, candidate_set);
+    return (idx < 0) ? NULL : &netif->ipv4.addrs[idx];
 }
 #endif  /* MODULE_GNRC_IPV4 */
 
@@ -856,31 +1180,6 @@ int gnrc_netif_ipv6_addr_match(gnrc_netif_t *netif,
     return idx;
 }
 
-ipv4_addr_t *gnrc_netif_ipv4_addr_best_src(gnrc_netif_t *netif,
-                                           const ipv4_addr_t *dst,
-                                           bool ll_only)
-{
-    ipv4_addr_t *best_src = NULL;
-
-    BITFIELD(candidate_set, GNRC_NETIF_IPV4_ADDRS_NUMOF);
-
-    assert((netif != NULL) && (dst != NULL));
-    DEBUG("gnrc_netif: get best source address for %s\n",
-          ipv4_addr_to_str(addr_str, dst, sizeof(addr_str)));
-    memset(candidate_set, 0, sizeof(candidate_set));
-    gnrc_netif_acquire(netif);
-    int first_candidate = _create_candidate_set(netif, dst, ll_only,
-                                                candidate_set);
-    if (first_candidate >= 0) {
-        best_src = _src_addr_selection(netif, dst, candidate_set);
-        if (best_src == NULL) {
-            best_src = &(netif->ipv4.addrs[first_candidate]);
-        }
-    }
-    gnrc_netif_release(netif);
-    return best_src;
-}
-
 ipv6_addr_t *gnrc_netif_ipv6_addr_best_src(gnrc_netif_t *netif,
                                            const ipv6_addr_t *dst,
                                            bool ll_only)
@@ -904,23 +1203,6 @@ ipv6_addr_t *gnrc_netif_ipv6_addr_best_src(gnrc_netif_t *netif,
     }
     gnrc_netif_release(netif);
     return best_src;
-}
-
-gnrc_netif_t *gnrc_netif_get_by_ipv4_addr(const ipv4_addr_t *addr)
-{
-    gnrc_netif_t *netif = NULL;
-
-    DEBUG("gnrc_netif: get interface by IPv4 address %s\n",
-          ipv4_addr_to_str(addr_str, addr, sizeof(addr_str)));
-    while ((netif = gnrc_netif_iter(netif))) {
-        if (_addr_idx(netif, addr) >= 0) {
-            break;
-        }
-        if (_group_idx(netif, addr) >= 0) {
-            break;
-        }
-    }
-    return netif;
 }
 
 gnrc_netif_t *gnrc_netif_get_by_ipv6_addr(const ipv6_addr_t *addr)

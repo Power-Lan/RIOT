@@ -48,6 +48,31 @@ extern "C" {
 #define IPV4_ADDR_LOOPBACK                  {{ 0x7F, 0x00, 0x00, 0x01 }}
 
 /**
+ * @name    Multicast address scopes
+ * @brief   Values for the scope field in multicast addresses.
+ * @{
+ *
+ */
+#define IPV4_ADDR_MCAST_SCP_IF_LOCAL        (0x1)   /**< interface-local scope */
+#define IPV4_ADDR_MCAST_SCP_LINK_LOCAL      (0x2)   /**< link-local scope */
+
+/**
+ * @brief realm-local scope
+ *
+ * @see <a href="http://tools.ietf.org/html/rfc7346#section-3">
+ *          RFC 7346, section 3
+ *      </a> and
+ *      <a href="http://tools.ietf.org/html/rfc7346#section-5">
+ *          RFC 7346, section 5
+ *      </a> and
+ */
+#define IPV4_ADDR_MCAST_SCP_REALM_LOCAL (0x3)
+#define IPV4_ADDR_MCAST_SCP_ADMIN_LOCAL (0x4)      /**< admin-local scope */
+#define IPV4_ADDR_MCAST_SCP_SITE_LOCAL  (0x5)      /**< site-local scope */
+#define IPV4_ADDR_MCAST_SCP_ORG_LOCAL   (0x8)      /**< organization-local scope */
+#define IPV4_ADDR_MCAST_SCP_GLOBAL      (0xe)      /**< global scope */
+
+/**
  * @brief Data type to represent an IPv4 address.
  */
 typedef union {
@@ -201,6 +226,24 @@ ipv4_addr_t *ipv4_addr_from_str(ipv4_addr_t *result, const char *addr);
  * @return  ipv4_addr_t result, on success
  */
 ipv4_addr_t ipv4_mask_to_addr(const uint8_t mask);
+
+/**
+ * @brief   Check if @p addr is a link-local address.
+ *
+ * @param[in] addr  An IPv4 address.
+ *
+ * @return  true, if @p addr is link-local address,
+ * @return  false, otherwise.
+ */
+static inline bool ipv4_addr_is_link_local(const ipv4_addr_t *addr)
+{
+    return addr->u8[0] == 169 && addr->u8[1] == 254;
+}
+
+static inline uint8_t ipv4_addr_match_prefix(const ipv4_addr_t *ipSrc, const ipv4_addr_t *mask, const ipv4_addr_t *ipDst)
+{
+    return (ipSrc->u32.u32 & mask->u32.u32) == (ipDst->u32.u32 & mask->u32.u32);
+}
 
 #ifdef __cplusplus
 }
