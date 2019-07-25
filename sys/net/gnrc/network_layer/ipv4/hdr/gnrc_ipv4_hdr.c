@@ -18,7 +18,7 @@
 #include "net/gnrc/pktbuf.h"
 #include "net/protnum.h"
 
-#define ENABLE_DEBUG    (0)
+#define ENABLE_DEBUG    (1)
 #include "debug.h"
 
 #if defined(MODULE_IPV4_ADDR)
@@ -74,8 +74,12 @@ gnrc_pktsnip_t *gnrc_ipv4_hdr_build(gnrc_pktsnip_t *payload, const ipv4_addr_t *
     }
 
     ipv4_hdr_set_version(hdr);
+    ipv4_hdr_set_ihl(hdr, 20);       // No options
     hdr->ttl = 64;
-    // TODO: Set default values for other headers
+    hdr->ts = 0;
+    hdr->csum = byteorder_htons(0);
+    hdr->protocol = PROTNUM_RESERVED;
+    // TODO: Check default values for other headers
 
     return ipv4;
 }

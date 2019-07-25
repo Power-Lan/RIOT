@@ -104,6 +104,7 @@
 #include "thread.h"
 
 #include "net/ipv4.h"
+#include "net/gnrc/ipv4/hdr.h"
 
 #ifdef __cplusplus
 extern "C" {

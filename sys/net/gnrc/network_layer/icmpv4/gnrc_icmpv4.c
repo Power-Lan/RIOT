@@ -29,7 +29,7 @@
 #include "net/gnrc/icmpv4.h"
 #include "net/gnrc/icmpv4/echo.h"
 
-#define ENABLE_DEBUG    (0)
+#define ENABLE_DEBUG    (1)
 #include "debug.h"
 
 static inline uint16_t _calc_csum(gnrc_pktsnip_t *hdr,

@@ -33,6 +33,8 @@
 #include "net/gnrc/ipv6/blacklist.h"
 
 #include "net/gnrc/ipv6.h"
+#include "net/gnrc/ipv4/hdr.h"
+
 
 #define ENABLE_DEBUG    (0)
 #include "debug.h"

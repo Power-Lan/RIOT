@@ -20,7 +20,7 @@
 
 #include "net/gnrc/icmpv4/error.h"
 
-#define ENABLE_DEBUG    (0)
+#define ENABLE_DEBUG    (1)
 #include "debug.h"
 
 /* all error messages are basically the same size and format */
