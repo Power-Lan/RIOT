@@ -73,7 +73,7 @@ gnrc_pktsnip_t *gnrc_ipv4_hdr_build(gnrc_pktsnip_t *payload, const ipv4_addr_t *
         ipv4_addr_set_loopback(&hdr->dst);
     }
 
-    ipv4_hdr_set_version(&hdr);
+    ipv4_hdr_set_version(hdr);
     hdr->ttl = 64;
     // TODO: Set default values for other headers
 
