@@ -244,6 +244,35 @@ static void _send(gnrc_pktsnip_t *pkt, bool prep_hdr)
     ipv4_hdr_t *ipv4_hdr;
     uint8_t netif_hdr_flags = 0U;
 
+    /* get IPv4 snip and (if present) generic interface header */
+    if (pkt->type == GNRC_NETTYPE_NETIF) {
+        /* If there is already a netif header (routing protocols and
+         * neighbor discovery might add them to preset sending interface or
+         * higher layers wants to provide flags to the interface ) */
+        const gnrc_netif_hdr_t *netif_hdr = pkt->data;
+
+        netif = gnrc_netif_hdr_get_netif(pkt->data);
+        /* discard broadcast and multicast flags because those could be
+         * potentially wrong (dst is later checked to assure that multicast is
+         * set if dst is a multicast address) */
+        netif_hdr_flags = netif_hdr->flags &
+                          ~(GNRC_NETIF_HDR_FLAGS_BROADCAST |
+                            GNRC_NETIF_HDR_FLAGS_MULTICAST);
+
+        tmp_pkt = gnrc_pktbuf_start_write(pkt);
+        if (tmp_pkt == NULL) {
+            DEBUG("ipv4: unable to get write access to netif header, dropping packet\n");
+            gnrc_pktbuf_release(pkt);
+            return;
+        }
+        /* discard to avoid complex checks for correctness (will be re-added
+         * with correct addresses anyway as for the case were there is no
+         * netif header provided)
+         * Also re-establish temporary pointer used for write protection as
+         * actual pointer */
+        pkt = gnrc_pktbuf_remove_snip(tmp_pkt, tmp_pkt);
+    }
+
     // Ensure is IPv4
     if (pkt->type != GNRC_NETTYPE_IPV4) {
         DEBUG("ipv4: unexpected packet type\n");
