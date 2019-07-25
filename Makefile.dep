@@ -348,6 +348,7 @@ endif
 ifneq (,$(filter gnrc_ipv4,$(USEMODULE)))
   USEMODULE += inet_csum
   USEMODULE += ipv4_addr
+  USEMODULE += ipv4_hdr
   USEMODULE += gnrc_ipv4_hdr
   USEMODULE += gnrc_netif
 endif

@@ -27,15 +27,22 @@
 #include "msg.h"
 #include "net/gnrc/pktdump.h"
 #include "net/gnrc.h"
-//#include "net/icmpv4.h"
+
+#if MODULE_GNRC_IPV4
+#include "net/icmp.h"
 #include "net/ipv4/addr.h"
 #include "net/ipv4/hdr.h"
+#endif
+
+#if MODULE_GNRC_IPV6
 #include "net/icmpv6.h"
 #include "net/ipv6/addr.h"
 #include "net/ipv6/hdr.h"
+#include "net/sixlowpan.h"
+#endif
+
 #include "net/tcp.h"
 #include "net/udp.h"
-#include "net/sixlowpan.h"
 #include "od.h"
 
 /**
@@ -73,7 +80,7 @@ static void _dump_snip(gnrc_pktsnip_t *pkt)
         case GNRC_NETTYPE_IPV4:
             printf("NETTYPE_IPV4 (%i)\n", pkt->type);
             ipv4_hdr_print(pkt->data);
-            hdr_len = sizeof(ipv6_hdr_t);
+            hdr_len = sizeof(ipv4_hdr_t);
             break;
 #endif
 #ifdef MODULE_GNRC_IPV6
