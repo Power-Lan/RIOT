@@ -21,6 +21,7 @@ ipv4_addr_t ipv4_mask_to_addr(const uint8_t mask)
 {
     ipv4_addr_t addr;
 
+    assert(mask <= 32);
     uint32_t m = ((uint32_t)0xFFFFFFFF << (32 - mask));
 
     addr.u32 = byteorder_htonl(m);

@@ -166,6 +166,15 @@ char *ipv4_addr_to_str(char *result, const ipv4_addr_t *addr, uint8_t result_len
  */
 ipv4_addr_t *ipv4_addr_from_str(ipv4_addr_t *result, const char *addr);
 
+/**
+ * @brief   Converts a mask size to an address string representation
+ *
+ * @param[in] mask      The size of the mask
+ *
+ * @return  ipv4_addr_t result, on success
+ */
+ipv4_addr_t ipv4_mask_to_addr(const uint8_t mask);
+
 #ifdef __cplusplus
 }
 #endif
