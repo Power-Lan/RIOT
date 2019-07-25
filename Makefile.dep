@@ -332,6 +332,13 @@ ifneq (,$(filter gnrc_ipv6_nib,$(USEMODULE)))
   endif
 endif
 
+ifneq (,$(filter gnrc_ipv4,$(USEMODULE)))
+  USEMODULE += inet_csum
+  USEMODULE += ipv4_addr
+  USEMODULE += gnrc_ipv4_hdr
+  USEMODULE += gnrc_netif
+endif
+
 ifneq (,$(filter gnrc_udp,$(USEMODULE)))
   USEMODULE += inet_csum
   USEMODULE += udp
