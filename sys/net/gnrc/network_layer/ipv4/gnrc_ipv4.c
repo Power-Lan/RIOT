@@ -237,6 +237,53 @@ static void _send_multicast(gnrc_pktsnip_t *pkt, bool prep_hdr,
   gnrc_pktbuf_release_error(pkt, EINVAL);
 }
 
+static void _send_unicast(gnrc_pktsnip_t *pkt, bool prep_hdr,
+                          gnrc_netif_t *netif, ipv4_hdr_t *ipv4_hdr,
+                          uint8_t netif_hdr_flags)
+{
+    gnrc_ipv4_nib_nc_t nce;
+
+    nce.l2addr[0] = 0x00;
+    nce.l2addr[1] = 0x01;
+    nce.l2addr[2] = 0x02;
+    nce.l2addr[3] = 0x03;
+    nce.l2addr[4] = 0x04;
+    nce.l2addr[5] = 0x05;
+    nce.l2addr[6] = 0x06;
+    nce.l2addr[7] = 0x07;
+    nce.l2addr_len = 8;
+
+    DEBUG("ipv4: send unicast\n");
+#if 0
+    if (gnrc_ipv4_nib_get_next_hop_l2addr(&ipv4_hdr->dst, netif, pkt,
+                                          &nce) < 0) {
+        /* packet is released by NIB */
+        DEBUG("ipv4: no link-layer address or interface for next hop to %s",
+              ipv4_addr_to_str(addr_str, &ipv4_hdr->dst, sizeof(addr_str)));
+        return;
+    }
+
+    netif = gnrc_netif_get_by_pid(gnrc_ipv4_nib_nc_get_iface(&nce));
+    assert(netif != NULL);
+#endif
+    if (_safe_fill_ipv4_hdr(netif, pkt, prep_hdr)) {
+        DEBUG("ipv4: add interface header to packet\n");
+        if ((pkt = _create_netif_hdr(nce.l2addr, nce.l2addr_len, pkt,
+                                     netif_hdr_flags)) == NULL) {
+            return;
+        }
+
+        DEBUG("ipv4: send unicast over interface %" PRIkernel_pid "\n",
+              netif->pid);
+
+        /* and send to interface */
+#ifdef MODULE_NETSTATS_IPV4
+        netif->ipv4.stats.tx_unicast_count++;
+#endif
+        _send_to_iface(netif, pkt);
+    }
+}
+
 static void _send(gnrc_pktsnip_t *pkt, bool prep_hdr)
 {
     gnrc_netif_t *netif = NULL;
@@ -310,8 +357,7 @@ static void _send(gnrc_pktsnip_t *pkt, bool prep_hdr)
             _send_to_self(pkt, prep_hdr, tmp_netif);
         }
         else {
-            //_send_unicast(pkt, prep_hdr, netif, ipv4_hdr, netif_hdr_flags);
-            gnrc_pktbuf_release_error(pkt, EINVAL);
+            _send_unicast(pkt, prep_hdr, netif, ipv4_hdr, netif_hdr_flags);
         }
     }
 }
