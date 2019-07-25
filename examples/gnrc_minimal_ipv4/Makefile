@@ -20,7 +20,6 @@ DEVELHELP ?= 1
 USEMODULE += gnrc_netdev_default
 USEMODULE += auto_init_gnrc_netif
 # Specify the minimum networking modules for IPv4
-USEMODULE += ipv4_addr
 USEMODULE += gnrc_ipv4
 # Additional networking modules that can be dropped if not needed
 #USEMODULE += gnrc_icmpv4_echo
@@ -35,6 +34,11 @@ USEMODULE += gnrc_icmpv4_echo
 USEMODULE += shell
 USEMODULE += shell_commands
 USEMODULE += ps
+
+
+USEMODULE += gnrc_icmpv6_echo
+USEMODULE += gnrc_icmpv6_error
+
 
 CFLAGS += -DGNRC_PKTBUF_SIZE=512 -DGNRC_NETIF_IPV4_ADDRS_NUMOF=2 \
           -DGNRC_NETIF_IPV4_GROUPS_NUMOF=2 -DGNRC_IPV4_NIB_NUMOF=1 \
