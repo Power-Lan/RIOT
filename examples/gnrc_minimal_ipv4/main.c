@@ -31,12 +31,12 @@
 #define MAIN_QUEUE_SIZE     (8)
 static msg_t _main_msg_queue[MAIN_QUEUE_SIZE];
 
-extern int udp_cmd(int argc, char **argv);
-//extern int _gnrc_icmpv6_ping(int argc, char **argv);
+//extern int udp_cmd(int argc, char **argv);
+extern int _gnrc_icmpv4_ping(int argc, char **argv);
 
 static const shell_command_t shell_commands[] = {
-    { "udp", "send data over UDP and listen on UDP ports", udp_cmd },
-    //{ "ping6", "Ping via ICMPv6", _icmpv6_ping },
+    //{ "udp", "send data over UDP and listen on UDP ports", udp_cmd },
+    { "ping4", "Ping via ICMPv4", _gnrc_icmpv4_ping },
     { NULL, NULL, NULL }
 };
 
@@ -50,6 +50,7 @@ int main(void)
     ipv4_addr_t addr_mask;
     netif = gnrc_netif_iter(netif);
     ipv4_addr_t ipv4_addrs[GNRC_NETIF_IPV4_ADDRS_NUMOF];
+    //ipv6_addr_t ipv6_addrs[GNRC_NETIF_IPV4_ADDRS_NUMOF];
     char ipv4_addr[IPV4_ADDR_MAX_STR_LEN];
     ipv4_addr_t set_ipv4_addr = {{192, 168, 11, 222}};
     printf("My netif->pid is %d\n", netif->pid);
@@ -58,6 +59,10 @@ int main(void)
     xtimer_usleep(20000);
 
     int res = gnrc_netapi_set(netif->pid, NETOPT_IPV4_ADDR, 24, &set_ipv4_addr, sizeof(set_ipv4_addr));
+    /*printf("My res= is %d\n", res);
+    res = gnrc_netapi_get(netif->pid, NETOPT_IPV6_ADDR, 0, ipv6_addrs, sizeof(ipv6_addrs));
+    printf("My res= is %d\n", res);
+    res = gnrc_netapi_set(netif->pid, NETOPT_IPV6_ADDR_REMOVE, 24, ipv6_addrs, sizeof(ipv6_addrs));*/
     printf("My res= is %d\n", res);
     res = gnrc_netapi_get(netif->pid, NETOPT_IPV4_ADDR, 0, ipv4_addrs, sizeof(ipv4_addrs));
     printf("My res= is %d\n", res);

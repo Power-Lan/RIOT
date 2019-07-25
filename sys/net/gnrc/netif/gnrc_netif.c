@@ -881,6 +881,23 @@ ipv6_addr_t *gnrc_netif_ipv6_addr_best_src(gnrc_netif_t *netif,
     return best_src;
 }
 
+gnrc_netif_t *gnrc_netif_get_by_ipv4_addr(const ipv4_addr_t *addr)
+{
+    gnrc_netif_t *netif = NULL;
+
+    DEBUG("gnrc_netif: get interface by IPv4 address %s\n",
+          ipv4_addr_to_str(addr_str, addr, sizeof(addr_str)));
+    while ((netif = gnrc_netif_iter(netif))) {
+        if (_addr_idx(netif, addr) >= 0) {
+            break;
+        }
+        if (_group_idx(netif, addr) >= 0) {
+            break;
+        }
+    }
+    return netif;
+}
+
 gnrc_netif_t *gnrc_netif_get_by_ipv6_addr(const ipv6_addr_t *addr)
 {
     gnrc_netif_t *netif = NULL;

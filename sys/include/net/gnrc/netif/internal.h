@@ -236,6 +236,19 @@ ipv6_addr_t *gnrc_netif_ipv6_addr_best_src(gnrc_netif_t *netif,
  *
  * @pre `addr != NULL`
  *
+ * @param[in] addr  an IPv4 address
+ *
+ * @return  The network interface that has @p addr assigned
+ * @return  NULL, if no interface has @p addr assigned
+ */
+gnrc_netif_t *gnrc_netif_get_by_ipv4_addr(const ipv4_addr_t *addr);
+
+/**
+ * @brief   Gets an interface by an address (incl. multicast groups) assigned
+ *          to it.
+ *
+ * @pre `addr != NULL`
+ *
  * @param[in] addr  an IPv6 address
  *
  * @return  The network interface that has @p addr assigned
