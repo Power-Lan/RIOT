@@ -53,6 +53,19 @@ static void _receive(msg_t *msg)
   }
   arp_payload_t *payload = (arp_payload_t *)pkt->data;
 
+  // Check hw/protocol length
+  if (payload->hw_size != 6 || payload->protocol_size != 4) {
+      DEBUG("ipv4_arp: unexpected hw_size or protocol_size\n");
+      gnrc_pktbuf_release_error(pkt, EINVAL);
+      return;
+  }
+
+  // Ensure this is a request
+  if (payload->opcode != 1) {
+      DEBUG("ipv4_arp: not an arp request\n");
+      gnrc_pktbuf_release_error(pkt, EINVAL);
+      return;
+  }
 
   // Get network interface
   gnrc_netif_t *netif = NULL;
@@ -60,11 +73,13 @@ static void _receive(msg_t *msg)
   assert(netif != NULL);
 
   // Extract MAC source
-  if (gnrc_pkt_len(pkt) < sizeof(arp_payload_t)) {
-    DEBUG("ipv4_arp: packet too short\n");
+  if (gnrc_pkt_len(pkt) != sizeof(arp_payload_t)) {
+    DEBUG("ipv4_arp: wrong packet size\n");
     gnrc_pktbuf_release_error(pkt, EINVAL);
     return;
   }
+
+  // We love debugs
   DEBUG("ipv4_arp: opcode = %d\n", byteorder_ntohs(payload->opcode));
   DEBUG("ipv4_arp: sender_hw_addr = %02X:%02X:%02X:%02X:%02X:%02X\n",
     payload->sender_hw_addr[0],
@@ -82,8 +97,6 @@ static void _receive(msg_t *msg)
     payload->target_hw_addr[4],
     payload->target_hw_addr[5]);
   DEBUG("ipv4_arp: target_protocol_addr = %s\n", ipv4_addr_to_str(ipv4_addr, &payload->target_protocol_addr, IPV4_ADDR_MAX_STR_LEN));
-
-  // Extract requested IP
 
   // List IP
   ipv4_addr_t ipv4_addrs[GNRC_NETIF_IPV4_ADDRS_NUMOF];
