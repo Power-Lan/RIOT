@@ -53,6 +53,13 @@ static void _receive(msg_t *msg)
   }
   arp_payload_t *payload = (arp_payload_t *)pkt->data;
 
+  // Check protocol type
+  if (byteorder_ntohs(payload->protocol_type) != ETHERTYPE_IPV4) {
+      DEBUG("ipv4_arp: wrong protocol_type\n");
+      gnrc_pktbuf_release_error(pkt, EINVAL);
+      return;
+  }
+
   // Check hw/protocol length
   if (payload->hw_size != 6 || payload->protocol_size != 4) {
       DEBUG("ipv4_arp: unexpected hw_size or protocol_size\n");
@@ -61,7 +68,7 @@ static void _receive(msg_t *msg)
   }
 
   // Ensure this is a request
-  if (payload->opcode != 1) {
+  if (byteorder_ntohs(payload->opcode) != 1) {
       DEBUG("ipv4_arp: not an arp request\n");
       gnrc_pktbuf_release_error(pkt, EINVAL);
       return;
@@ -101,13 +108,18 @@ static void _receive(msg_t *msg)
   // List IP
   ipv4_addr_t ipv4_addrs[GNRC_NETIF_IPV4_ADDRS_NUMOF];
   int res = gnrc_netapi_get(netif->pid, NETOPT_IPV4_ADDR, 0, ipv4_addrs, sizeof(ipv4_addrs));
-  printf("My res= is %d\n", res);
   if (res < 0) {
-  } else {
-      for (unsigned i = 0; i < (unsigned)(res / sizeof(ipv4_addr_t)); i++) {
-          printf("My address is %s\n", ipv4_addr_to_str(ipv4_addr, &ipv4_addrs[i], IPV4_ADDR_MAX_STR_LEN));
-      }
+    DEBUG("ipv4_arp: Failed to list IPs on interface %d\n", netif->pid);
+    gnrc_pktbuf_release(pkt);
+    return;
   }
+
+  for (unsigned i = 0; i < (unsigned)(res / sizeof(ipv4_addr_t)); i++) {
+    if (ipv4_addr_equal(&ipv4_addrs[i], payload->target_protocol_addr)) {
+      DEBUG("ipv4_arp: It's me !\n");
+    }
+  }
+
 
   gnrc_pktbuf_release(pkt);
 }
