@@ -20,6 +20,9 @@
 #include "cpu_conf.h"
 #include "utlist.h"
 
+#include "net/gnrc.h"
+#include "net/gnrc/netif.h"
+#include "net/gnrc/netif/internal.h"
 #include "net/gnrc/ipv4/arp/arp.h"
 #include "net/arp.h"
 
@@ -31,6 +34,8 @@ static char _stack[GNRC_IPV4_ARP_STACK_SIZE + THREAD_EXTRA_STACKSIZE_PRINTF];
 #else
 static char _stack[GNRC_IPV4_ARP_STACK_SIZE];
 #endif
+
+kernel_pid_t gnrc_ipv4_arp_pid = KERNEL_PID_UNDEF;
 
 static void *_event_loop(void *args)
 {
@@ -55,6 +60,8 @@ static void *_event_loop(void *args)
         switch (msg.type) {
             case GNRC_NETAPI_MSG_TYPE_RCV:
                 DEBUG("ipv4_arp: GNRC_NETAPI_MSG_TYPE_RCV received\n");
+                printf("ipv4_arp: sender_pid:%d\n", msg.sender_pid);
+                gnrc_pktbuf_release(msg.content.ptr);
                 break;
 
             case GNRC_NETAPI_MSG_TYPE_SND:
@@ -79,7 +86,7 @@ static void *_event_loop(void *args)
 kernel_pid_t gnrc_ipv4_arp_init(void)
 {
     if (gnrc_ipv4_arp_pid == KERNEL_PID_UNDEF) {
-        gnrc_ipv4_arp_pid = thread_create(_stack, sizeof(_stack), GNRC_IPV4_PRIO,
+        gnrc_ipv4_arp_pid = thread_create(_stack, sizeof(_stack), GNRC_IPV4_ARP_PRIO,
                                           THREAD_CREATE_STACKTEST,
                                           _event_loop, NULL, "ipv4_arp");
     }

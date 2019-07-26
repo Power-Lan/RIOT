@@ -74,7 +74,7 @@ typedef enum {
 #ifdef MODULE_GNRC_LWMAC
     GNRC_NETTYPE_LWMAC,          /**< Protocol is lwMAC */
 #endif
-#ifdef MODULE_GNRC_ARP
+#ifdef MODULE_GNRC_IPV4_ARP
     GNRC_NETTYPE_ARP,          /**< Protocol is ARP */
 #endif
     /**

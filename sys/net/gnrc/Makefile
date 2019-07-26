@@ -20,7 +20,7 @@ ifneq (,$(filter gnrc_ipv4,$(USEMODULE)))
   DIRS += network_layer/ipv4
 endif
 ifneq (,$(filter gnrc_ipv4_arp,$(USEMODULE)))
-  DIRS += network_layer/gnrc_ipv4_arp
+  DIRS += network_layer/ipv4/arp
 endif
 ifneq (,$(filter gnrc_ipv6,$(USEMODULE)))
   DIRS += network_layer/ipv6
