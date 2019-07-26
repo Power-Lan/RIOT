@@ -39,6 +39,8 @@ static char ipv4_addr[IPV4_ADDR_MAX_STR_LEN];
 
 kernel_pid_t gnrc_ipv4_arp_pid = KERNEL_PID_UNDEF;
 
+static void _send_request(ipv4_addr_t *ipv4, gnrc_netif_t *netif);
+
 static void _send_response(arp_payload_t *request, gnrc_netif_t *netif)
 {
   // Build ARP response
@@ -69,14 +71,6 @@ static void _send_response(arp_payload_t *request, gnrc_netif_t *netif)
       DEBUG("ipv4_arp: unable to send packet\n");
       gnrc_pktbuf_release(pkt);
   }
-
-  // FOR TEST ONLY
-  ipv4_addr_t jn;
-  jn.u8[0] = 192;
-  jn.u8[0] = 168;
-  jn.u8[0] = 0;
-  jn.u8[0] = 254;
-  _send_request(jn, netif)
 }
 
 static void _send_request(ipv4_addr_t *ipv4, gnrc_netif_t *netif)
@@ -89,7 +83,7 @@ static void _send_request(ipv4_addr_t *ipv4, gnrc_netif_t *netif)
     }
   }
 
-  if (ipv4src == ipv4_addr_unspecified) {
+  if (ipv4_addr_equal(&ipv4src, &ipv4_addr_unspecified)) {
     DEBUG("ipv4_arp: no IPv4 on interface ? abord...\n");
     return;
   }
@@ -101,7 +95,7 @@ static void _send_request(ipv4_addr_t *ipv4, gnrc_netif_t *netif)
     return;
   }
   for (unsigned i = 0; i < (unsigned)(res / sizeof(ipv4_addr_t)); i++) {
-    ipv4src = &ipv4_addrs[i];
+    ipv4src = ipv4_addrs[i];
     break;
   }
 
@@ -112,16 +106,17 @@ static void _send_request(ipv4_addr_t *ipv4, gnrc_netif_t *netif)
   request.hw_size = 6;
   request.protocol_size = 4;
   request.opcode = byteorder_htons(1);
-  memcpy(&request.sender_hw_addr, &netif->l2addr, sizeof(reponse.sender_hw_addr));
+  memcpy(&request.sender_hw_addr, &netif->l2addr, sizeof(request.sender_hw_addr));
   memcpy(&request.sender_protocol_addr, &ipv4src, sizeof(ipv4_addr_t));
-  memset(&request.target_hw_addr, 0, sizeof(reponse.target_hw_addr));
-  memcpy(&request.target_protocol_addr, &ipv4, sizeof(ipv4_addr_t));
+  memset(&request.target_hw_addr, 0, sizeof(request.target_hw_addr));
+  memcpy(&request.target_protocol_addr, ipv4, sizeof(ipv4_addr_t));
 
-  gnrc_pktsnip_t *pkt = gnrc_pktbuf_add(NULL, &reponse, sizeof(arp_payload_t), GNRC_NETTYPE_ARP);
+  gnrc_pktsnip_t *pkt = gnrc_pktbuf_add(NULL, &request, sizeof(arp_payload_t), GNRC_NETTYPE_ARP);
   assert(pkt != NULL);
 
   // L2 headers
-  gnrc_pktsnip_t *netif_hdr = gnrc_netif_hdr_build(NULL, 0, (uint8_t *) &request->sender_hw_addr, 6);
+  uint8_t broadcast[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+  gnrc_pktsnip_t *netif_hdr = gnrc_netif_hdr_build(NULL, 0, broadcast, sizeof(broadcast));
   assert(netif_hdr != NULL);
 
   gnrc_netif_hdr_t *hdr = netif_hdr->data;
