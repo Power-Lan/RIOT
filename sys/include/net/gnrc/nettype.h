@@ -74,6 +74,9 @@ typedef enum {
 #ifdef MODULE_GNRC_LWMAC
     GNRC_NETTYPE_LWMAC,          /**< Protocol is lwMAC */
 #endif
+#ifdef MODULE_GNRC_ARP
+    GNRC_NETTYPE_ARP,          /**< Protocol is ARP */
+#endif
     /**
      * @}
      */
@@ -153,6 +156,10 @@ typedef enum {
 static inline gnrc_nettype_t gnrc_nettype_from_ethertype(uint16_t type)
 {
     switch (type) {
+#ifdef MODULE_GNRC_IPV4_ARP
+        case ETHERTYPE_ARP:
+            return GNRC_NETTYPE_ARP;
+#endif
 #ifdef MODULE_GNRC_IPV4
         case ETHERTYPE_IPV4:
             return GNRC_NETTYPE_IPV4;
@@ -195,6 +202,10 @@ static inline uint16_t gnrc_nettype_to_ethertype(gnrc_nettype_t type)
 #ifdef MODULE_GNRC_SIXLOENC
         case GNRC_NETTYPE_SIXLOWPAN:
             return ETHERTYPE_6LOENC;
+#endif
+#ifdef MODULE_GNRC_IPV4_ARP
+        case GNRC_NETTYPE_ARP:
+            return ETHERTYPE_ARP;
 #endif
 #ifdef MODULE_GNRC_IPV4
         case GNRC_NETTYPE_IPV4:
