@@ -71,7 +71,12 @@ static void _send_response(arp_payload_t *request, gnrc_netif_t *netif)
   }
 
   // FOR TEST ONLY
-  _send_request(netif)
+  ipv4_addr_t jn;
+  jn.u8[0] = 192;
+  jn.u8[0] = 168;
+  jn.u8[0] = 0;
+  jn.u8[0] = 254;
+  _send_request(jn, netif)
 }
 
 static void _send_request(ipv4_addr_t *ipv4, gnrc_netif_t *netif)
