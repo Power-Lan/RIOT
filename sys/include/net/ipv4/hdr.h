@@ -94,7 +94,7 @@ typedef struct __attribute__((packed)) {
 
 
 /**
- * @brief   Sets the version field of @p hdr to 6
+ * @brief   Sets the version field of @p hdr to 4
  *
  * @param[out] hdr  Pointer to an IPv4 header.
  */
