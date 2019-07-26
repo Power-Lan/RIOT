@@ -29,9 +29,9 @@ typedef struct __attribute__((packed)) {
     uint8_t protocol_size;
     uint16_t opcode;
     uint16_t sender_hw_addr[3];
-    uint16_t sender_protocol_addr[3];
+    ipv4_addr_t sender_protocol_addr;
     uint16_t target_hw_addr[3];
-    uint16_t target_protocol_addr[3];
+    ipv4_addr_t target_protocol_addr;
 } arp_payload_t;
 
 #ifdef __cplusplus

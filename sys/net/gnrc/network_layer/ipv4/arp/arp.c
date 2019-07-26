@@ -50,6 +50,38 @@ static void _receive(msg_t *msg)
       return;
   }
 
+  // Get network interface
+  gnrc_netif_t *netif = NULL;
+  netif = gnrc_netif_get_by_pid(msg->sender_pid);
+  assert(netif != NULL);
+
+  // Extract MAC source
+  if (gnrc_pkt_len(pkt) < sizeof(arp_payload_t)) {
+    DEBUG("ipv4_arp: packet too short\n");
+    gnrc_pktbuf_release_error(pkt, EINVAL);
+    return;
+  }
+  arp_payload_t *payload = (arp_payload_t *)pkt->data;
+  DEBUG("ipv4_arp: opcode = %d\n", payload->opcode);
+  DEBUG("ipv4_arp: sender_hw_addr = %04X%04X%04X\n", payload->sender_hw_addr[0], payload->sender_hw_addr[1], payload->sender_hw_addr[2]);
+  DEBUG("ipv4_arp: sender_protocol_addr = %08X\n", payload->sender_protocol_addr.u32);
+  DEBUG("ipv4_arp: target_hw_addr = %04X%04X%04X\n", payload->target_hw_addr[0], payload->target_hw_addr[1], payload->target_hw_addr[2]);
+
+  // Extract requested IP
+
+  // List IP
+  res = gnrc_netapi_get(netif->pid, NETOPT_IPV4_ADDR, 0, ipv4_addrs, sizeof(ipv4_addrs));
+  printf("My res= is %d\n", res);
+  if (res < 0) {
+  } else {
+      for (unsigned i = 0; i < (unsigned)(res / sizeof(ipv4_addr_t)); i++) {
+          //char ipv4_addr[IPV4_ADDR_MAX_STR_LEN];
+
+          //ipv4_addr = ipv4_addr_to_str(ipv4_addr, &ipv4_addrs[i], IPV4_ADDR_MAX_STR_LEN);
+          printf("My address is %s\n", ipv4_addr_to_str(ipv4_addr, &ipv4_addrs[i], IPV4_ADDR_MAX_STR_LEN));
+      }
+  }
+
 
 }
 
