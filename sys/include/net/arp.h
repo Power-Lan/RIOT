@@ -23,14 +23,14 @@ typedef struct __attribute__((packed)) {
 } arp_t;
 
 typedef struct __attribute__((packed)) {
-    uint16_t hw_type;
-    uint16_t protocol_type;
+    network_uint16_t hw_type;
+    network_uint16_t protocol_type;
     uint8_t hw_size;
     uint8_t protocol_size;
-    uint16_t opcode;
-    uint16_t sender_hw_addr[3];
+    network_uint16_t opcode;
+    uint8_t sender_hw_addr[6];
     ipv4_addr_t sender_protocol_addr;
-    uint16_t target_hw_addr[3];
+    uint8_t target_hw_addr[6];
     ipv4_addr_t target_protocol_addr;
 } arp_payload_t;
 

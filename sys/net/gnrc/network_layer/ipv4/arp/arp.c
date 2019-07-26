@@ -65,27 +65,32 @@ static void _receive(msg_t *msg)
   }
   arp_payload_t *payload = (arp_payload_t *)pkt->data;
   DEBUG("ipv4_arp: opcode = %d\n", payload->opcode);
-  DEBUG("ipv4_arp: sender_hw_addr = %04X%04X%04X\n",
-    byteorder_ntohs(payload->sender_hw_addr[0]),
-    byteorder_ntohs(payload->sender_hw_addr[1]),
-    byteorder_ntohs(payload->sender_hw_addr[2]));
+  DEBUG("ipv4_arp: sender_hw_addr = %02X:%02X:%02X:%02X:%02X:%02X\n",
+    payload->sender_hw_addr[0],
+    payload->sender_hw_addr[1],
+    payload->sender_hw_addr[2],
+    payload->sender_hw_addr[3],
+    payload->sender_hw_addr[4],
+    payload->sender_hw_addr[5]);
   DEBUG("ipv4_arp: sender_protocol_addr = %s\n", ipv4_addr_to_str(ipv4_addr, &payload->sender_protocol_addr, IPV4_ADDR_MAX_STR_LEN));
-  DEBUG("ipv4_arp: target_hw_addr = %04X%04X%04X\n",
-    byteorder_ntohs(payload->target_hw_addr[0]),
-    byteorder_ntohs(payload->target_hw_addr[1]),
-    byteorder_ntohs(payload->target_hw_addr[2]));
+  DEBUG("ipv4_arp: target_hw_addr = %02X:%02X:%02X:%02X:%02X:%02X\n",
+    payload->target_hw_addr[0],
+    payload->target_hw_addr[1],
+    payload->target_hw_addr[2],
+    payload->target_hw_addr[3],
+    payload->target_hw_addr[4],
+    payload->target_hw_addr[5]);
+  DEBUG("ipv4_arp: target_protocol_addr = %s\n", ipv4_addr_to_str(ipv4_addr, &payload->target_protocol_addr, IPV4_ADDR_MAX_STR_LEN));
 
   // Extract requested IP
 
   // List IP
+  ipv4_addr_t ipv4_addrs[GNRC_NETIF_IPV4_ADDRS_NUMOF];
   int res = gnrc_netapi_get(netif->pid, NETOPT_IPV4_ADDR, 0, ipv4_addrs, sizeof(ipv4_addrs));
   printf("My res= is %d\n", res);
   if (res < 0) {
   } else {
       for (unsigned i = 0; i < (unsigned)(res / sizeof(ipv4_addr_t)); i++) {
-          //char ipv4_addr[IPV4_ADDR_MAX_STR_LEN];
-
-          //ipv4_addr = ipv4_addr_to_str(ipv4_addr, &ipv4_addrs[i], IPV4_ADDR_MAX_STR_LEN);
           printf("My address is %s\n", ipv4_addr_to_str(ipv4_addr, &ipv4_addrs[i], IPV4_ADDR_MAX_STR_LEN));
       }
   }
