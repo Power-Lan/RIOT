@@ -44,12 +44,11 @@ static void _send_response(arp_payload_t *request, gnrc_netif_t *netif)
   arp_payload_t reponse;
 
   // ARP
-  reponse.hw_type = 1;
+  reponse.hw_type = byteorder_htons(1);
   reponse.protocol_type = ETHERTYPE_IPV4;
   reponse.hw_size = 6;
   reponse.protocol_size = 4;
-  reponse.opcode = 2;
-  reponse.sender_hw_addr = A TROUVER;
+  reponse.opcode = byteorder_htons(2);
   memcpy(&reponse.sender_hw_addr, &netif->l2addr, sizeof(reponse.sender_hw_addr));
   memcpy(&reponse.sender_protocol_addr, &request.target_protocol_addr, sizeof(ipv4_addr_t));
   memcpy(&reponse.target_hw_addr, &request.sender_hw_addr, sizeof(reponse.target_hw_addr));
