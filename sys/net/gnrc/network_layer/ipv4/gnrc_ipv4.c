@@ -196,6 +196,9 @@ static int _fill_ipv4_hdr(gnrc_netif_t *netif, gnrc_pktsnip_t *ipv4)
         }
     }
 
+    DEBUG("ipv4: calculate checksum.\n");
+    ipv4_hdr_inet_csum(ipv4);
+
     return 0;
 }
 
