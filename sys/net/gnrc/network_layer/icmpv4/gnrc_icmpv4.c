@@ -46,7 +46,6 @@ static inline uint16_t _calc_csum(gnrc_pktsnip_t *hdr,
     }
 
     csum = inet_csum(csum, hdr->data, hdr->size);
-    csum = ipv4_hdr_inet_csum(csum, pseudo_hdr->data, PROTNUM_ICMPV4, len);
 
     return ~csum;
 }

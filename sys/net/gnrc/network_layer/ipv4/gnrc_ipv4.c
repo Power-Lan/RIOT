@@ -41,7 +41,7 @@ static char _stack[GNRC_IPV4_STACK_SIZE];
 #endif
 
 
-//static char addr_str[IPV4_ADDR_MAX_STR_LEN];
+static char addr_str[IPV4_ADDR_MAX_STR_LEN];
 
 kernel_pid_t gnrc_ipv4_pid = KERNEL_PID_UNDEF;
 
@@ -197,7 +197,7 @@ static int _fill_ipv4_hdr(gnrc_netif_t *netif, gnrc_pktsnip_t *ipv4)
     }
 
     DEBUG("ipv4: calculate checksum.\n");
-    ipv4_hdr_inet_csum(ipv4);
+    ipv4_hdr_inet_csum(ipv4->data);
 
     return 0;
 }
@@ -239,6 +239,67 @@ static void _send_multicast(gnrc_pktsnip_t *pkt, bool prep_hdr,
 {
   gnrc_pktbuf_release_error(pkt, EINVAL);
 }
+
+static void _send_to_iface(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
+{
+    const ipv4_hdr_t *hdr = pkt->next->data;
+
+    assert(netif != NULL);
+    ((gnrc_netif_hdr_t *)pkt->data)->if_pid = netif->pid;
+    /*if (gnrc_pkt_len(pkt->next) > netif->ipv4.mtu) {
+        DEBUG("ipv4: packet too big\n");
+        //gnrc_icmpv4_error_pkt_too_big_send(netif->ipv4.mtu, pkt);
+        gnrc_pktbuf_release_error(pkt, EMSGSIZE);
+        return;
+    }*/
+    DEBUG("ipv4: Sending (src = %s, ",
+          ipv4_addr_to_str(addr_str, &hdr->src, sizeof(addr_str)));
+    DEBUG("dst = %s, next header = %u, length = %u)\n",
+          ipv4_addr_to_str(addr_str, &hdr->dst, sizeof(addr_str)), hdr->protocol,
+          byteorder_ntohs(hdr->tl));
+
+    if (gnrc_netapi_send(netif->pid, pkt) < 1) {
+        DEBUG("ipv4: unable to send packet\n");
+        gnrc_pktbuf_release(pkt);
+    }
+}
+
+static gnrc_pktsnip_t *_create_netif_hdr(uint8_t *dst_l2addr,
+                                         unsigned dst_l2addr_len,
+                                         gnrc_pktsnip_t *pkt,
+                                         uint8_t flags)
+{
+    gnrc_pktsnip_t *netif_hdr = gnrc_netif_hdr_build(NULL, 0, dst_l2addr, dst_l2addr_len);
+    gnrc_netif_hdr_t *hdr;
+
+    if (netif_hdr == NULL) {
+        DEBUG("ipv4: error on interface header allocation, dropping packet\n");
+        gnrc_pktbuf_release(pkt);
+        return NULL;
+    }
+    hdr = netif_hdr->data;
+    /* previous netif header might have been allocated by some higher layer
+     * to provide some flags (provided to us via netif_flags). */
+    hdr->flags = flags;
+
+    /* add netif_hdr to front of the pkt list */
+    LL_PREPEND(pkt, netif_hdr);
+
+    return pkt;
+}
+
+typedef struct {
+    /**
+     * @brief   Neighbor's link-layer address
+     */
+    uint8_t l2addr[6];
+    /**
+     * @brief   Neighbor information as defined in
+     *          @ref net_gnrc_ipv6_nib_nc_info "info values"
+     */
+    uint16_t info;
+    uint8_t l2addr_len;     /**< Length of gnrc_ipv6_nib_nc_t::l2addr in bytes */
+} gnrc_ipv6_nib_nc_t;
 
 static void _send_unicast(gnrc_pktsnip_t *pkt, bool prep_hdr,
                           gnrc_netif_t *netif, ipv4_hdr_t *ipv4_hdr,

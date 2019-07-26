@@ -207,15 +207,15 @@ static inline uint16_t ipv4_hdr_get_fo(ipv4_hdr_t *hdr)
  *
  * @param[in] hdr       An IPv4 header
  */
-static inline uint16_t ipv4_hdr_inet_csum(ipv4_hdr_t *hdr)
+static inline void ipv4_hdr_inet_csum(ipv4_hdr_t *hdr)
 {
     uint16_t csum;
 
     // Ensure the checksum is 0, to be able to count it ;p
     hdr->csum = byteorder_htons(0);
 
-    csum = inet_csum(0, hdr, sizeof(ipv4_addr_t));
-    hdr->csum = byteorder_htons(csum);
+    csum = inet_csum(0, (uint8_t *) hdr, sizeof(ipv4_hdr_t));
+    hdr->csum = byteorder_htons(~csum);
 }
 
 /**
