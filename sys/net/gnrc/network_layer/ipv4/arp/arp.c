@@ -51,6 +51,8 @@ static void _receive(msg_t *msg)
       gnrc_pktbuf_release_error(pkt, EINVAL);
       return;
   }
+  arp_payload_t *payload = (arp_payload_t *)pkt->data;
+
 
   // Get network interface
   gnrc_netif_t *netif = NULL;
@@ -63,8 +65,7 @@ static void _receive(msg_t *msg)
     gnrc_pktbuf_release_error(pkt, EINVAL);
     return;
   }
-  arp_payload_t *payload = (arp_payload_t *)pkt->data;
-  DEBUG("ipv4_arp: opcode = %d\n", payload->opcode);
+  DEBUG("ipv4_arp: opcode = %d\n", byteorder_ntohs(payload->opcode));
   DEBUG("ipv4_arp: sender_hw_addr = %02X:%02X:%02X:%02X:%02X:%02X\n",
     payload->sender_hw_addr[0],
     payload->sender_hw_addr[1],
@@ -95,7 +96,7 @@ static void _receive(msg_t *msg)
       }
   }
 
-
+  gnrc_pktbuf_release(pkt);
 }
 
 static void *_event_loop(void *args)
