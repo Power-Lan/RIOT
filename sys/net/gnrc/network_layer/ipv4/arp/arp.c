@@ -37,6 +37,21 @@ static char _stack[GNRC_IPV4_ARP_STACK_SIZE];
 
 kernel_pid_t gnrc_ipv4_arp_pid = KERNEL_PID_UNDEF;
 
+static void _receive(msg_t *msg)
+{
+  gnrc_netif_t *netif = NULL;
+
+  // Ensure pkt is ARP
+  gnrc_pktsnip_t *pkt = msg.content.ptr;
+  if (pkt->type != GNRC_NETTYPE_ARP) {
+      DEBUG("ipv4_arp: unexpected packet type\n");
+      gnrc_pktbuf_release_error(pkt, EINVAL);
+      return;
+  }
+
+
+}
+
 static void *_event_loop(void *args)
 {
     msg_t msg, reply, msg_q[GNRC_IPV4_ARP_MSG_QUEUE_SIZE];
@@ -60,8 +75,9 @@ static void *_event_loop(void *args)
         switch (msg.type) {
             case GNRC_NETAPI_MSG_TYPE_RCV:
                 DEBUG("ipv4_arp: GNRC_NETAPI_MSG_TYPE_RCV received\n");
-                printf("ipv4_arp: sender_pid:%d\n", msg.sender_pid);
-                gnrc_pktbuf_release(msg.content.ptr);
+                //printf("ipv4_arp: sender_pid:%d\n", msg.sender_pid);
+                //gnrc_pktbuf_release(msg.content.ptr);
+                _receive(&msg);
                 break;
 
             case GNRC_NETAPI_MSG_TYPE_SND:

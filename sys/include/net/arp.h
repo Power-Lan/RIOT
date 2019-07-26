@@ -22,6 +22,18 @@ typedef struct __attribute__((packed)) {
     kernel_pid_t iface;
 } arp_t;
 
+typedef struct __attribute__((packed)) {
+    uint16_t hw_type;
+    uint16_t protocol_type;
+    uint8_t hw_size;
+    uint8_t protocol_size;
+    uint16_t opcode;
+    uint16_t sender_hw_addr[3];
+    uint16_t sender_protocol_addr[3];
+    uint16_t target_hw_addr[3];
+    uint16_t target_protocol_addr[3];
+} arp_payload_t;
+
 #ifdef __cplusplus
 }
 #endif
