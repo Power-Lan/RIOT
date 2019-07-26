@@ -12,7 +12,8 @@ extern "C" {
 
 #define ARP_MAC_SIZE (6)
 
-#define ARP_FLAG_COMPLETE  (1)
+#define ARP_FLAG_KNOWN      (1)
+#define ARP_FLAG_COMPLETE   (2)
 
 typedef struct __attribute__((packed)) {
     ipv4_addr_t ipv4;

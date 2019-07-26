@@ -38,7 +38,8 @@ static char _stack[GNRC_IPV4_ARP_STACK_SIZE];
 static char ipv4_addr[IPV4_ADDR_MAX_STR_LEN];
 kernel_pid_t gnrc_ipv4_arp_pid = KERNEL_PID_UNDEF;
 
-static void _send_request(ipv4_addr_t *ipv4, gnrc_netif_t *netif);
+#define ARP_TABLE_SIZE  (8)
+static arp_t arp_table[ARP_TABLE_SIZE];
 
 static void _send_response(arp_payload_t *request, gnrc_netif_t *netif)
 {
@@ -129,6 +130,17 @@ static void _send_request(ipv4_addr_t *ipv4, gnrc_netif_t *netif)
   }
 }
 
+static void _receive_response(msg_t *msg, arp_payload_t *payload)
+{
+  for (int i=0; i<ARP_TABLE_SIZE; i++) {
+    if (ipv4_addr_equal(arp_table[i].ipv4, payload->target_protocol_addr) && arp_table[i].iface == msg->sender_pid) {
+      memcpy(&arp_table[i].mac, payload->target_hw_addr, ARP_MAC_SIZE);
+      arp_table[i].flags = ARP_FLAG_COMPLETE;
+      break;
+    }
+  }
+}
+
 static void _receive(msg_t *msg)
 {
   assert(msg != NULL);
@@ -160,6 +172,11 @@ static void _receive(msg_t *msg)
   if (payload->hw_size != 6 || payload->protocol_size != 4) {
       DEBUG("ipv4_arp: unexpected hw_size or protocol_size\n");
       gnrc_pktbuf_release_error(pkt, EINVAL);
+      return;
+  }
+
+  if (byteorder_ntohs(payload->opcode) == 2) {
+      _receive_response(msg, payload);
       return;
   }
 
@@ -219,9 +236,43 @@ static void _receive(msg_t *msg)
 static void _get(msg_t *msg, msg_t *reply)
 {
   arp_netapi_get_t *request = msg->content.ptr;
-  request->mac = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06};
 
-  reply.content.value = 0;
+  for (int i=0; i<ARP_TABLE_SIZE; i++) {
+    if (ipv4_addr_equal(arp_table[i].ipv4, request->ipv4) && arp_table[i].iface == request->iface) {
+      if (arp_table[i].flags & ARP_FLAG_COMPLETE) {
+        // IP and MAC known
+        memcpy(&request->mac, &arp_table[i].mac, ARP_MAC_SIZE);
+        reply.content.value = 0;
+        msg_reply(&msg, &reply);
+        return;
+      } else {
+        // IP known, but not the MAC
+        reply.content.value = -EAGAIN;
+        msg_reply(&msg, &reply);
+        return;
+      }
+    }
+  }
+
+  // Unknown IP
+  for (int i=0; i<ARP_TABLE_SIZE; i++) {
+    if (arp_table[i].flags == 0) {
+      // Reserve sapce in ARP table
+      arp_table[i].ipv4 = request->ipv4;
+      arp_table[i].iface = request->iface;
+      arp_table[i].flags = ARP_FLAG_KNOWN;
+
+      // Send ARP
+      _send_request(request->ipv4, request->iface);
+
+      // Response to GET
+      reply.content.value = -EAGAIN;
+      msg_reply(&msg, &reply);
+      return;
+    }
+  }
+
+  reply.content.value = -ENOMEM;
   msg_reply(&msg, &reply);
 }
 
@@ -275,6 +326,12 @@ static void *_event_loop(void *args)
 
 kernel_pid_t gnrc_ipv4_arp_init(void)
 {
+    // Init ARP table
+    for (int i=0; i<ARP_TABLE_SIZE; i++) {
+      arp_table[i].flags = 0;
+    }
+
+    // Create ARP thread
     if (gnrc_ipv4_arp_pid == KERNEL_PID_UNDEF) {
         gnrc_ipv4_arp_pid = thread_create(_stack, sizeof(_stack), GNRC_IPV4_ARP_PRIO,
                                           THREAD_CREATE_STACKTEST,
