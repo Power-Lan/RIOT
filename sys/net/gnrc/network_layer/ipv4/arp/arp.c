@@ -41,9 +41,8 @@ kernel_pid_t gnrc_ipv4_arp_pid = KERNEL_PID_UNDEF;
 
 static void _send_response(arp_payload_t *request, gnrc_netif_t *netif)
 {
+  // Build ARP response
   arp_payload_t reponse;
-
-  // ARP
   reponse.hw_type = byteorder_htons(1);
   reponse.protocol_type = byteorder_htons(ETHERTYPE_IPV4);
   reponse.hw_size = 6;
@@ -58,7 +57,66 @@ static void _send_response(arp_payload_t *request, gnrc_netif_t *netif)
   assert(pkt != NULL);
 
   // L2 headers
-  gnrc_pktsnip_t *netif_hdr = gnrc_netif_hdr_build(NULL, 0, &request->sender_hw_addr, 6);
+  gnrc_pktsnip_t *netif_hdr = gnrc_netif_hdr_build(NULL, 0, (uint8_t *) &request->sender_hw_addr, 6);
+  assert(netif_hdr != NULL);
+
+  gnrc_netif_hdr_t *hdr = netif_hdr->data;
+  hdr->if_pid = netif->pid;
+  LL_PREPEND(pkt, netif_hdr);
+
+  // Publish on network interface
+  if (gnrc_netapi_send(netif->pid, pkt) < 1) {
+      DEBUG("ipv4_arp: unable to send packet\n");
+      gnrc_pktbuf_release(pkt);
+  }
+
+  // FOR TEST ONLY
+  _send_request(netif)
+}
+
+static void _send_request(ipv4_addr_t *ipv4, gnrc_netif_t *netif)
+{
+  // Find the best source IP addr (not implemented)
+  ipv4_addr_t ipv4src = ipv4_addr_unspecified;
+  for (int i=0; i<GNRC_NETIF_IPV4_ADDRS_NUMOF; i++) {
+    if (netif->ipv4.addrs_flags[i] & 0x01) {
+      ipv4src = netif->ipv4.addrs[i];
+    }
+  }
+
+  if (ipv4src == ipv4_addr_unspecified) {
+    DEBUG("ipv4_arp: no IPv4 on interface ? abord...\n");
+    return;
+  }
+
+  ipv4_addr_t ipv4_addrs[GNRC_NETIF_IPV4_ADDRS_NUMOF];
+  int res = gnrc_netapi_get(netif->pid, NETOPT_IPV4_ADDR, 0, ipv4_addrs, sizeof(ipv4_addrs));
+  if (res < 0) {
+    DEBUG("ipv4_arp: Failed to list IPs on interface %d\n", netif->pid);
+    return;
+  }
+  for (unsigned i = 0; i < (unsigned)(res / sizeof(ipv4_addr_t)); i++) {
+    ipv4src = &ipv4_addrs[i];
+    break;
+  }
+
+  // Build ARP response
+  arp_payload_t request;
+  request.hw_type = byteorder_htons(1);
+  request.protocol_type = byteorder_htons(ETHERTYPE_IPV4);
+  request.hw_size = 6;
+  request.protocol_size = 4;
+  request.opcode = byteorder_htons(1);
+  memcpy(&request.sender_hw_addr, &netif->l2addr, sizeof(reponse.sender_hw_addr));
+  memcpy(&request.sender_protocol_addr, &ipv4src, sizeof(ipv4_addr_t));
+  memset(&request.target_hw_addr, 0, sizeof(reponse.target_hw_addr));
+  memcpy(&request.target_protocol_addr, &ipv4, sizeof(ipv4_addr_t));
+
+  gnrc_pktsnip_t *pkt = gnrc_pktbuf_add(NULL, &reponse, sizeof(arp_payload_t), GNRC_NETTYPE_ARP);
+  assert(pkt != NULL);
+
+  // L2 headers
+  gnrc_pktsnip_t *netif_hdr = gnrc_netif_hdr_build(NULL, 0, (uint8_t *) &request->sender_hw_addr, 6);
   assert(netif_hdr != NULL);
 
   gnrc_netif_hdr_t *hdr = netif_hdr->data;
@@ -182,8 +240,6 @@ static void *_event_loop(void *args)
         switch (msg.type) {
             case GNRC_NETAPI_MSG_TYPE_RCV:
                 DEBUG("ipv4_arp: GNRC_NETAPI_MSG_TYPE_RCV received\n");
-                //printf("ipv4_arp: sender_pid:%d\n", msg.sender_pid);
-                //gnrc_pktbuf_release(msg.content.ptr);
                 _receive(&msg);
                 break;
 
