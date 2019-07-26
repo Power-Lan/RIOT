@@ -26,6 +26,8 @@ USEMODULE += gnrc_ipv4
 # Use minimal standard PRNG
 USEMODULE += prng_minstd
 
+
+
 # This application dumps received packets to STDIO using the pktdump module
 USEMODULE += gnrc_pktdump
 
@@ -38,6 +40,9 @@ USEMODULE += ps
 USEMODULE += gnrc_icmpv4_echo
 USEMODULE += gnrc_icmpv4_error
 
+ifeq (esp32-olimex-evb,$(BOARD))
+    USEMODULE += olimex_esp32_gateway
+endif
 
 CFLAGS += -DGNRC_PKTBUF_SIZE=512 -DGNRC_NETIF_IPV4_ADDRS_NUMOF=2 \
           -DGNRC_NETIF_IPV4_GROUPS_NUMOF=2 -DGNRC_IPV4_NIB_NUMOF=1 \
