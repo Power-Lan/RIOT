@@ -45,20 +45,20 @@ static void _send_response(arp_payload_t *request, gnrc_netif_t *netif)
 
   // ARP
   reponse.hw_type = byteorder_htons(1);
-  reponse.protocol_type = ETHERTYPE_IPV4;
+  reponse.protocol_type = byteorder_htons(ETHERTYPE_IPV4);
   reponse.hw_size = 6;
   reponse.protocol_size = 4;
   reponse.opcode = byteorder_htons(2);
   memcpy(&reponse.sender_hw_addr, &netif->l2addr, sizeof(reponse.sender_hw_addr));
-  memcpy(&reponse.sender_protocol_addr, &request.target_protocol_addr, sizeof(ipv4_addr_t));
-  memcpy(&reponse.target_hw_addr, &request.sender_hw_addr, sizeof(reponse.target_hw_addr));
-  memcpy(&reponse.target_protocol_addr, &request.sender_protocol_addr, sizeof(ipv4_addr_t));
+  memcpy(&reponse.sender_protocol_addr, &request->target_protocol_addr, sizeof(ipv4_addr_t));
+  memcpy(&reponse.target_hw_addr, &request->sender_hw_addr, sizeof(reponse.target_hw_addr));
+  memcpy(&reponse.target_protocol_addr, &request->sender_protocol_addr, sizeof(ipv4_addr_t));
 
   gnrc_pktsnip_t *pkt = gnrc_pktbuf_add(NULL, &reponse, sizeof(arp_payload_t), GNRC_NETTYPE_ARP);
   assert(pkt != NULL);
 
   // L2 headers
-  gnrc_pktsnip_t *netif_hdr = gnrc_netif_hdr_build(NULL, 0, &request.sender_hw_addr, 6);
+  gnrc_pktsnip_t *netif_hdr = gnrc_netif_hdr_build(NULL, 0, &request->sender_hw_addr, 6);
   assert(netif_hdr != NULL);
 
   gnrc_netif_hdr_t *hdr = netif_hdr->data;
@@ -151,7 +151,7 @@ static void _receive(msg_t *msg)
   for (unsigned i = 0; i < (unsigned)(res / sizeof(ipv4_addr_t)); i++) {
     if (ipv4_addr_equal(&ipv4_addrs[i], &payload->target_protocol_addr)) {
       DEBUG("ipv4_arp: It's me ! Mario\n");
-      _send_response(payload, netif)
+      _send_response(payload, netif);
       break;
     }
   }
