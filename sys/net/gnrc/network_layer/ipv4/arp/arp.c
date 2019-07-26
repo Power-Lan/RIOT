@@ -53,6 +53,13 @@ static void _receive(msg_t *msg)
   }
   arp_payload_t *payload = (arp_payload_t *)pkt->data;
 
+  // TODO: pkt->size is too big ~50 bytes
+  if (pkt->size < sizeof(arp_payload_t)) {
+    DEBUG("ipv4_arp: wrong packet size %d instead of %d\n", pkt->size, sizeof(arp_payload_t));
+    gnrc_pktbuf_release_error(pkt, EINVAL);
+    return;
+  }
+
   // Check protocol type
   if (byteorder_ntohs(payload->protocol_type) != ETHERTYPE_IPV4) {
       DEBUG("ipv4_arp: wrong protocol_type\n");
@@ -78,13 +85,6 @@ static void _receive(msg_t *msg)
   gnrc_netif_t *netif = NULL;
   netif = gnrc_netif_get_by_pid(msg->sender_pid);
   assert(netif != NULL);
-
-  // Extract MAC source
-  if (pkt->size != sizeof(arp_payload_t)) {
-    DEBUG("ipv4_arp: wrong packet size %d instead of %d\n", pkt->size, sizeof(arp_payload_t));
-    gnrc_pktbuf_release_error(pkt, EINVAL);
-    return;
-  }
 
   // We love debugs
   DEBUG("ipv4_arp: opcode = %d\n", byteorder_ntohs(payload->opcode));
@@ -117,9 +117,9 @@ static void _receive(msg_t *msg)
   for (unsigned i = 0; i < (unsigned)(res / sizeof(ipv4_addr_t)); i++) {
     if (ipv4_addr_equal(&ipv4_addrs[i], &payload->target_protocol_addr)) {
       DEBUG("ipv4_arp: It's me ! Mario\n");
+      break;
     }
   }
-
 
   gnrc_pktbuf_release(pkt);
 }
