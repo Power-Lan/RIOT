@@ -133,7 +133,7 @@ static inline bool ipv4_hdr_is(const ipv4_hdr_t *hdr)
  * @brief   Sets the Internet Header Length field of @p hdr
  *
  * @param[out] hdr  Pointer to an IPv4 header.
- * @param[in] ihl  Size in bytes of the Internet Header Length (including padding)
+ * @param[in] ihl  Size in bits of the Internet Header Length (including padding)
  */
 static inline void ipv4_hdr_set_ihl(ipv4_hdr_t *hdr, uint16_t ihl)
 {
@@ -205,31 +205,17 @@ static inline uint16_t ipv4_hdr_get_fo(ipv4_hdr_t *hdr)
 /**
  * @brief   Calculates the Internet Checksum for the IPv4 Pseudo Header.
  *
- * @see [RFC 8200, section 8.1](https://tools.ietf.org/html/rfc8200#section-8.1)
- *
- * @param[in] sum       Preinialized value of the sum.
- * @param[in] prot_num  The @ref net_protnum you want to calculate the
- *                      checksum for. Can not be inferred from
- *                      ipv4_hdr_t::nh, since it can be an IPv4 exentension
- *                      header.
- * @param[in] hdr       An IPv4 header to derive the Pseudo Header from.
- * @param[in] len       The upper-layer packet length for the pseudo header.
- *                      Can not be inferred from ipv4_hdr_t::len, since
- *                      there can be extension headers between the IPv4 header
- *                      and the payload.
- *
- * @return  The non-normalized Internet Checksum of the given IPv4 pseudo header.
+ * @param[in] hdr       An IPv4 header
  */
-static inline uint16_t ipv4_hdr_inet_csum(uint16_t sum, ipv4_hdr_t *hdr,
-                                          uint8_t prot_num, uint16_t len)
+static inline uint16_t ipv4_hdr_inet_csum(ipv4_hdr_t *hdr)
 {
-    if (((uint32_t)sum + len + prot_num) > 0xffff) {
-        /* increment by one for overflow to keep it as 1's complement sum */
-        sum++;
-    }
+    uint16_t csum;
 
-    return inet_csum(sum + len + prot_num, hdr->src.u8,
-                     (2 * sizeof(ipv4_addr_t)));
+    // Ensure the checksum is 0, to be able to count it ;p
+    hdr->csum = byteorder_htons(0);
+
+    csum = inet_csum(0, hdr, sizeof(ipv4_addr_t));
+    hdr->csum = byteorder_htons(csum);
 }
 
 /**

@@ -75,6 +75,7 @@ gnrc_pktsnip_t *gnrc_ipv4_hdr_build(gnrc_pktsnip_t *payload, const ipv4_addr_t *
 
     ipv4_hdr_set_version(hdr);
     ipv4_hdr_set_ihl(hdr, 20);       // No options
+    hdr->id = 0;
     hdr->ttl = 64;
     hdr->ts = 0;
     hdr->csum = byteorder_htons(0);
