@@ -136,6 +136,15 @@ static void _receive_response(msg_t *msg, arp_payload_t *payload)
     if (ipv4_addr_equal(arp_table[i].ipv4, payload->target_protocol_addr) && arp_table[i].iface == msg->sender_pid) {
       memcpy(&arp_table[i].mac, payload->target_hw_addr, ARP_MAC_SIZE);
       arp_table[i].flags = ARP_FLAG_COMPLETE;
+      DEBUG("ipv4_arp: %s is now %02X:%02X:%02X:%02X:%02X:%02X\n",
+        ipv4_addr_to_str(ipv4_addr, &payload->target_protocol_addr, IPV4_ADDR_MAX_STR_LEN),
+        payload->target_hw_addr[0],
+        payload->target_hw_addr[1],
+        payload->target_hw_addr[2],
+        payload->target_hw_addr[3],
+        payload->target_hw_addr[4],
+        payload->target_hw_addr[5]);
+
       break;
     }
   }
@@ -242,10 +251,23 @@ static void _get(msg_t *msg, msg_t *reply)
       if (arp_table[i].flags & ARP_FLAG_COMPLETE) {
         // IP and MAC known
         memcpy(&request->mac, &arp_table[i].mac, ARP_MAC_SIZE);
+
+        DEBUG("ipv4_arp: %s known as %02X:%02X:%02X:%02X:%02X:%02X\n",
+          ipv4_addr_to_str(ipv4_addr, &request->ipv4, IPV4_ADDR_MAX_STR_LEN),
+          request->mac[0],
+          request->mac[1],
+          request->mac[2],
+          request->mac[3],
+          request->mac[4],
+          request->mac[5]);
+
         reply.content.value = 0;
         msg_reply(&msg, &reply);
         return;
       } else {
+        DEBUG("ipv4_arp: %s have partial informations\n",
+          ipv4_addr_to_str(ipv4_addr, &request->ipv4, IPV4_ADDR_MAX_STR_LEN));
+
         // IP known, but not the MAC
         reply.content.value = -EAGAIN;
         msg_reply(&msg, &reply);
@@ -261,6 +283,9 @@ static void _get(msg_t *msg, msg_t *reply)
       arp_table[i].ipv4 = request->ipv4;
       arp_table[i].iface = request->iface;
       arp_table[i].flags = ARP_FLAG_KNOWN;
+
+      DEBUG("ipv4_arp: adding %s in table\n",
+        ipv4_addr_to_str(ipv4_addr, &request->ipv4, IPV4_ADDR_MAX_STR_LEN));
 
       // Send ARP
       _send_request(request->ipv4, request->iface);
