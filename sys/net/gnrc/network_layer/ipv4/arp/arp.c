@@ -39,10 +39,11 @@ kernel_pid_t gnrc_ipv4_arp_pid = KERNEL_PID_UNDEF;
 
 static void _receive(msg_t *msg)
 {
-  gnrc_netif_t *netif = NULL;
+
+  assert(msg != NULL);
 
   // Ensure pkt is ARP
-  gnrc_pktsnip_t *pkt = msg.content.ptr;
+  gnrc_pktsnip_t *pkt = msg->content.ptr;
   if (pkt->type != GNRC_NETTYPE_ARP) {
       DEBUG("ipv4_arp: unexpected packet type\n");
       gnrc_pktbuf_release_error(pkt, EINVAL);
