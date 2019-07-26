@@ -81,7 +81,7 @@ static void _receive(msg_t *msg)
 
   // Extract MAC source
   if (gnrc_pkt_len(pkt) != sizeof(arp_payload_t)) {
-    DEBUG("ipv4_arp: wrong packet size\n");
+    DEBUG("ipv4_arp: wrong packet size %d instead of %d\n", gnrc_pkt_len(pkt), sizeof(arp_payload_t));
     gnrc_pktbuf_release_error(pkt, EINVAL);
     return;
   }
