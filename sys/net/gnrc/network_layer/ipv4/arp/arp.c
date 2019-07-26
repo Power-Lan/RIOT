@@ -61,7 +61,7 @@ static void _receive(msg_t *msg)
   }
 
   // Check hw/protocol length
-  if (payload->hw_size != 6 || payload->protocol_size != 4) {
+  if (payload->hw_size != 6 || payload->protocol_size != 4) {
       DEBUG("ipv4_arp: unexpected hw_size or protocol_size\n");
       gnrc_pktbuf_release_error(pkt, EINVAL);
       return;
@@ -115,8 +115,8 @@ static void _receive(msg_t *msg)
   }
 
   for (unsigned i = 0; i < (unsigned)(res / sizeof(ipv4_addr_t)); i++) {
-    if (ipv4_addr_equal(&ipv4_addrs[i], payload->target_protocol_addr)) {
-      DEBUG("ipv4_arp: It's me !\n");
+    if (ipv4_addr_equal(&ipv4_addrs[i], &payload->target_protocol_addr)) {
+      DEBUG("ipv4_arp: It's me ! Mario\n");
     }
   }
 
