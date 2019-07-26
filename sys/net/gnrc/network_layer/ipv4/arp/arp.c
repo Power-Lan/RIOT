@@ -36,7 +36,6 @@ static char _stack[GNRC_IPV4_ARP_STACK_SIZE];
 #endif
 
 static char ipv4_addr[IPV4_ADDR_MAX_STR_LEN];
-
 kernel_pid_t gnrc_ipv4_arp_pid = KERNEL_PID_UNDEF;
 
 static void _send_request(ipv4_addr_t *ipv4, gnrc_netif_t *netif);
@@ -217,6 +216,15 @@ static void _receive(msg_t *msg)
   gnrc_pktbuf_release(pkt);
 }
 
+static void _get(msg_t *msg, msg_t *reply)
+{
+  arp_netapi_get_t *request = msg->content.ptr;
+  request->mac = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06};
+
+  reply.content.value = 0;
+  msg_reply(&msg, &reply);
+}
+
 static void *_event_loop(void *args)
 {
     msg_t msg, reply, msg_q[GNRC_IPV4_ARP_MSG_QUEUE_SIZE];
@@ -248,6 +256,9 @@ static void *_event_loop(void *args)
                 break;
 
             case GNRC_NETAPI_MSG_TYPE_GET:
+                _get(&msg, &reply);
+                break;
+
             case GNRC_NETAPI_MSG_TYPE_SET:
                 DEBUG("ipv4: reply to unsupported get/set\n");
                 reply.content.value = -ENOTSUP;

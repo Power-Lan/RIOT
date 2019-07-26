@@ -34,6 +34,12 @@ typedef struct __attribute__((packed)) {
     ipv4_addr_t target_protocol_addr;
 } arp_payload_t;
 
+typedef struct __attribute__((packed)) {
+    ipv4_addr_t ipv4;
+    uint8_t mac[ARP_MAC_SIZE];
+    kernel_pid_t iface;
+} arp_netapi_get_t;
+
 #ifdef __cplusplus
 }
 #endif
