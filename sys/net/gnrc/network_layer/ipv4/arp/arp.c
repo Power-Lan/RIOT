@@ -244,7 +244,8 @@ static void _receive(msg_t *msg)
 
 static void _get(msg_t *msg, msg_t *reply)
 {
-  arp_netapi_get_t *request = msg->content.ptr;
+  gnrc_netapi_opt_t *opt = msg->content.ptr;
+  arp_netapi_get_t *request = opt->data;
 
   for (int i=0; i<ARP_TABLE_SIZE; i++) {
     if (ipv4_addr_equal(&arp_table[i].ipv4, &request->ipv4) && arp_table[i].iface == request->iface) {
