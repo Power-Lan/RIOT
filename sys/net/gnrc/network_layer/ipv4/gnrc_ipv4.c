@@ -19,11 +19,12 @@
 #include "byteorder.h"
 #include "cpu_conf.h"
 #include "kernel_types.h"
-//#include "net/gnrc/icmpv4.h"
+#include "net/gnrc/icmpv4.h"
 #include "net/protnum.h"
 #include "thread.h"
 #include "utlist.h"
 
+#include "net/arp.h"
 #include "net/gnrc.h"
 #include "net/gnrc/netif.h"
 #include "net/gnrc/netif/internal.h"
@@ -47,7 +48,7 @@ static char addr_str[IPV4_ADDR_MAX_STR_LEN];
 kernel_pid_t gnrc_ipv4_pid = KERNEL_PID_UNDEF;
 
 /* handles GNRC_NETAPI_MSG_TYPE_RCV commands */
-//static void _receive(gnrc_pktsnip_t *pkt);
+static void _receive(gnrc_pktsnip_t *pkt);
 /* Sends packet over the appropriate interface(s).
  * prep_hdr: prepare header for sending (call to _fill_ipv4_hdr()), otherwise
  * assume it is already prepared */
@@ -67,6 +68,36 @@ kernel_pid_t gnrc_ipv4_init(void)
     }
 
     return gnrc_ipv4_pid;
+}
+
+/* internal functions */
+/* TODO _dispatch_next_header rename to fit ipv4 names */
+static void _dispatch_next_header(gnrc_pktsnip_t *pkt, unsigned nh, bool interested)
+{
+    const bool has_nh_subs = (gnrc_netreg_num(GNRC_NETTYPE_IPV4, nh) > 0) ||  interested;
+
+    DEBUG("ipv4: forward protocol = %u to other threads\n", nh);
+
+    if (has_nh_subs) {
+        gnrc_pktbuf_hold(pkt, 1);   /* don't remove from packet buffer in
+                                     * next dispatch */
+    }
+    if (gnrc_netapi_dispatch_receive(pkt->type,
+                                     GNRC_NETREG_DEMUX_CTX_ALL,
+                                     pkt) == 0) {
+        gnrc_pktbuf_release(pkt);
+    }
+    if (!has_nh_subs) {
+        /* we should exit early. pkt was already released above */
+        return;
+    }
+    if (interested) {
+        gnrc_pktbuf_hold(pkt, 1);   /* don't remove from packet buffer in
+                                     * next dispatch */
+    }
+    if (gnrc_netapi_dispatch_receive(GNRC_NETTYPE_IPV4, nh, pkt) == 0) {
+        gnrc_pktbuf_release(pkt);
+    }
 }
 
 static void *_event_loop(void *args)
@@ -92,7 +123,7 @@ static void *_event_loop(void *args)
         switch (msg.type) {
             case GNRC_NETAPI_MSG_TYPE_RCV:
                 DEBUG("ipv4: GNRC_NETAPI_MSG_TYPE_RCV received\n");
-                //_receive(msg.content.ptr);
+                _receive(msg.content.ptr);
                 break;
 
             case GNRC_NETAPI_MSG_TYPE_SND:
@@ -123,6 +154,7 @@ static inline bool _is_ipv4_hdr(gnrc_pktsnip_t *hdr)
 static int _fill_ipv4_hdr(gnrc_netif_t *netif, gnrc_pktsnip_t *ipv4)
 {
     int res;
+    static uint16_t identification=0;
     ipv4_hdr_t *hdr = ipv4->data;
     gnrc_pktsnip_t *payload, *prev;
 
@@ -153,6 +185,7 @@ static int _fill_ipv4_hdr(gnrc_netif_t *netif, gnrc_pktsnip_t *ipv4)
             hdr->ttl = netif->cur_hl;
         }
     }
+    hdr->id = byteorder_htons(identification++);
 
     // Check source ip
     if (ipv4_addr_is_unspecified(&hdr->src)) {
@@ -163,7 +196,8 @@ static int _fill_ipv4_hdr(gnrc_netif_t *netif, gnrc_pktsnip_t *ipv4)
 
             ipv4_addr_t *src = gnrc_netif_ipv4_addr_best_src(netif, &hdr->dst,
                                                              false);
-
+            ipv4_addr_t set_ipv4_addr = {{192, 168, 0, 222}};
+            src = &set_ipv4_addr;
             if (src != NULL) {
                 char addr_str[IPV4_ADDR_MAX_STR_LEN];
                 DEBUG("ipv4: set packet source to %s\n",
@@ -291,34 +325,32 @@ static gnrc_pktsnip_t *_create_netif_hdr(uint8_t *dst_l2addr,
     return pkt;
 }
 
-typedef struct {
-    /**
-     * @brief   Neighbor's link-layer address
-     */
-    uint8_t l2addr[6];
-    /**
-     * @brief   Neighbor information as defined in
-     *          @ref net_gnrc_ipv6_nib_nc_info "info values"
-     */
-    uint16_t info;
-    uint8_t l2addr_len;     /**< Length of gnrc_ipv6_nib_nc_t::l2addr in bytes */
-} gnrc_ipv6_nib_nc_t;
 
 static void _send_unicast(gnrc_pktsnip_t *pkt, bool prep_hdr,
                           gnrc_netif_t *netif, ipv4_hdr_t *ipv4_hdr,
                           uint8_t netif_hdr_flags)
 {
-    gnrc_ipv4_nib_nc_t nce;
+    // prepare arp query
+    arp_netapi_get_t arp_query;
+    arp_query.ipv4 = ipv4_hdr->dst;
+    arp_query.iface = netif->pid;
+    // send query
+    uint16_t result = 1;
+    printf("gnrc_ipv4: prepare arp query to gnrc_ipv4_arp\n");
+    for(int i=0;i<=3;i++) {
+        result = gnrc_netapi_get(gnrc_ipv4_arp_pid, 1, 0, &arp_query, sizeof(arp_query));
+        if( result == 0 ) {
+            printf("gnrc_ipv4: send arp query to gnrc_ipv4_arp\n");
+            break;
+        } else {
+            printf("gnrc_ipv4: send arp query to gnrc_ipv4_arp error :%d\n", result);
+            xtimer_usleep(100000); // 100ms
+        }
+    }
 
-    nce.l2addr[0] = 0x00;
-    nce.l2addr[1] = 0x01;
-    nce.l2addr[2] = 0x02;
-    nce.l2addr[3] = 0x03;
-    nce.l2addr[4] = 0x04;
-    nce.l2addr[5] = 0x05;
-    nce.l2addr[6] = 0x06;
-    nce.l2addr[7] = 0x07;
-    nce.l2addr_len = 8;
+    if( result != 0 ) {
+        return;
+    }
 
     DEBUG("ipv4: send unicast\n");
 #if 0
@@ -335,7 +367,7 @@ static void _send_unicast(gnrc_pktsnip_t *pkt, bool prep_hdr,
 #endif
     if (_safe_fill_ipv4_hdr(netif, pkt, prep_hdr)) {
         DEBUG("ipv4: add interface header to packet\n");
-        if ((pkt = _create_netif_hdr(nce.l2addr, nce.l2addr_len, pkt,
+        if ((pkt = _create_netif_hdr(arp_query.mac, sizeof(arp_query.mac), pkt,
                                      netif_hdr_flags)) == NULL) {
             return;
         }
@@ -427,6 +459,210 @@ static void _send(gnrc_pktsnip_t *pkt, bool prep_hdr)
             _send_unicast(pkt, prep_hdr, netif, ipv4_hdr, netif_hdr_flags);
         }
     }
+}
+
+static inline bool _gnrc_ipv4_is_interested(unsigned protocol) {
+#ifdef MODULE_GNRC_ICMPV4
+    return (protocol == PROTNUM_ICMP);
+#else  /* MODULE_GNRC_ICMPV4 */
+    return false;
+#endif /* MODULE_GNRC_ICMPV4 */
+}
+
+static void _demux(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt, unsigned protocol)
+{
+    pkt->type = gnrc_nettype_from_protnum(protocol);
+    _dispatch_next_header(pkt, protocol, _gnrc_ipv4_is_interested(protocol));
+    switch (protocol) {
+#ifdef MODULE_GNRC_ICMPV4
+        case PROTNUM_ICMP:
+            DEBUG("ipv4: handle ICMPv4 packet (protocol = %u)\n", protocol);
+            gnrc_icmpv4_demux(netif, pkt);
+            break;
+#endif /* MODULE_GNRC_ICMPV4 */
+        default:
+            break;
+    }
+}
+
+/* functions for receiving */
+static inline bool _pkt_not_for_me(gnrc_netif_t **netif, ipv4_hdr_t *hdr)
+{
+    if (ipv4_addr_is_loopback(&hdr->dst)) {
+        return false;
+    }
+    else if ((!ipv4_addr_is_link_local(&hdr->dst)) ||
+             (*netif == NULL)) {
+        *netif = gnrc_netif_get_by_ipv4_addr(&hdr->dst);
+        return (*netif == NULL);
+    }
+    else {
+        return (gnrc_netif_get_by_ipv4_addr(&hdr->dst) == NULL);
+    }
+}
+
+static void _receive(gnrc_pktsnip_t *pkt)
+{
+    gnrc_netif_t *netif = NULL;
+    gnrc_pktsnip_t *ipv4, *netif_hdr;
+    ipv4_hdr_t *hdr;
+    uint8_t protocol;
+
+    assert(pkt != NULL);
+
+    netif_hdr = gnrc_pktsnip_search_type(pkt, GNRC_NETTYPE_NETIF);
+
+    if (netif_hdr != NULL) {
+        netif = gnrc_netif_get_by_pid(((gnrc_netif_hdr_t *)netif_hdr->data)->if_pid);
+    }
+
+    if ((pkt->data == NULL) || (pkt->size < sizeof(ipv4_hdr_t)) || !ipv4_hdr_is(pkt->data)) {
+        DEBUG("ipv4: Received packet was not IPv4, dropping packet\n");
+        gnrc_pktbuf_release(pkt);
+        return;
+    }
+
+    /* seize ipv4 as a temporary variable */
+    ipv4 = gnrc_pktbuf_start_write(pkt);
+
+    if (ipv4 == NULL) {
+        DEBUG("ipv4: unable to get write access to packet, drop it\n");
+        gnrc_pktbuf_release(pkt);
+        return;
+    }
+
+    pkt = ipv4;     /* reset pkt from temporary variable */
+
+    ipv4 = gnrc_pktbuf_mark(pkt, sizeof(ipv4_hdr_t), GNRC_NETTYPE_IPV4);
+
+    pkt->type = GNRC_NETTYPE_UNDEF; /* snip is no longer IPv4 */
+
+    if (ipv4 == NULL) {
+        DEBUG("ipv4: error marking IPv4 header, dropping packet\n");
+        gnrc_pktbuf_release(pkt);
+        return;
+    }
+    /* extract header */
+    hdr = (ipv4_hdr_t *)ipv4->data;
+
+    if (hdr->ttl == 0) {
+        /* This is an illegal value in any case, not just in case of a
+         * forwarding step, so *do not* check it together with ((--hdr->hl) > 0)
+         * in forwarding code below */
+        DEBUG("ipv4: packet was received with ttl 0\n");
+        //gnrc_icmpv4_error_time_exc_send(ICMPV4_ERROR_TIME_EXC_HL, pkt);
+        gnrc_pktbuf_release_error(pkt, ETIMEDOUT);
+        return;
+    }
+
+    uint16_t ipv4_len = byteorder_ntohs(hdr->tl);
+    uint8_t ipv4_hdr_len = ipv4_hdr_get_ihl(hdr)/8;
+    uint8_t ipv4_payload_len = ipv4_len - ipv4_hdr_len;
+    protocol = hdr->protocol;
+
+    if (ipv4_len <= sizeof(ipv4_hdr_t)) {
+        /* this doesn't even make sense */
+        DEBUG("ipv4: payload length 0\n");
+        gnrc_pktbuf_release(pkt);
+        return;
+    }
+    /* if available, remove any padding that was added by lower layers
+     * to fulfill their minimum size requirements (e.g. ethernet) */
+    else if ((ipv4 != pkt) && (ipv4_payload_len < pkt->size)) {
+        gnrc_pktbuf_realloc_data(pkt, ipv4_hdr_len);
+    }
+    else if (ipv4_payload_len > (gnrc_pkt_len_upto(pkt, GNRC_NETTYPE_IPV4) - sizeof(ipv4_hdr_t))) {
+        DEBUG("ipv4: invalid payload length: %d, actual: %d, dropping packet\n",
+              ipv4_len,
+              (int) (gnrc_pkt_len_upto(pkt, GNRC_NETTYPE_IPV4) - sizeof(ipv4_hdr_t)));
+        //gnrc_icmpv4_error_param_prob_send(ICMPV4_ERROR_PARAM_PROB_HDR_FIELD, &(ipv4_hdr_len), pkt);
+        gnrc_pktbuf_release_error(pkt, EINVAL);
+        return;
+    }
+
+    /* verify checksum header */
+    uint16_t csum;
+    csum = (uint16_t) ~ inet_csum(0, (uint8_t *) hdr, sizeof(ipv4_hdr_t));
+    if( byteorder_ntohs(hdr->csum) == csum ) {
+        DEBUG("ipv4: wrong header checksum : %x (instead of %x)", byteorder_ntohs(hdr->csum), (~csum));
+    }
+
+    DEBUG("ipv4: Received (src = %s, ",
+          ipv4_addr_to_str(addr_str, &(hdr->src), sizeof(addr_str)));
+    DEBUG("dst = %s, protocol = %u, header length = %" PRIu16 ")\n",
+          ipv4_addr_to_str(addr_str, &(hdr->dst), sizeof(addr_str)),
+          protocol, ipv4_hdr_len);
+
+    if (_pkt_not_for_me(&netif, hdr)) { /* if packet is not for me */
+        DEBUG("ipv4: packet destination not this host\n");
+
+#ifdef MODULE_GNRC_IPV4_ROUTER    /* only routers redirect */
+        /* redirect to next hop */
+        DEBUG("ipv4: decrement hop limit to %u\n", (uint8_t) (hdr->ttl - 1));
+
+        /* RFC 4291, section 2.5.6 states: "Routers must not forward any
+         * packets with Link-Local source or destination addresses to other
+         * links."
+         */
+        if ((ipv4_addr_is_link_local(&(hdr->src))) || (ipv4_addr_is_link_local(&(hdr->dst)))) {
+            DEBUG("ipv4: do not forward packets with link-local source or"
+                  " destination address\n");
+#ifdef MODULE_GNRC_ICMPV4_ERROR
+            if (ipv4_addr_is_link_local(&(hdr->src)) &&
+                !ipv4_addr_is_link_local(&(hdr->dst))) {
+                gnrc_icmpv4_error_dst_unr_send(ICMPV4_ERROR_DST_UNR_SCOPE, pkt);
+            }
+            else if (!ipv4_addr_is_multicast(&(hdr->dst))) {
+                gnrc_icmpv4_error_dst_unr_send(ICMPV4_ERROR_DST_UNR_ADDR, pkt);
+            }
+#endif
+            gnrc_pktbuf_release(pkt);
+            return;
+        }
+        /* TODO: check if receiving interface is router */
+        else if (--(hdr->hl) > 0) {  /* drop packets that *reach* Hop Limit 0 */
+            DEBUG("ipv6: forward packet to next hop\n");
+
+            /* pkt might not be writable yet, if header was given above */
+            ipv6 = gnrc_pktbuf_start_write(ipv6);
+            if (ipv6 == NULL) {
+                DEBUG("ipv6: unable to get write access to packet: dropping it\n");
+                gnrc_pktbuf_release(pkt);
+                return;
+            }
+
+            /* remove L2 headers around IPV6 */
+            netif_hdr = gnrc_pktsnip_search_type(pkt, GNRC_NETTYPE_NETIF);
+            if (netif_hdr != NULL) {
+                gnrc_pktbuf_remove_snip(pkt, netif_hdr);
+            }
+            pkt = gnrc_pktbuf_reverse_snips(pkt);
+            if (pkt != NULL) {
+                _send(pkt, false);
+            }
+            else {
+                DEBUG("ipv6: unable to reverse pkt from receive order to send "
+                      "order; dropping it\n");
+            }
+            return;
+        }
+        else {
+            DEBUG("ipv6: hop limit reached 0: drop packet\n");
+            gnrc_icmpv6_error_time_exc_send(ICMPV6_ERROR_TIME_EXC_HL, pkt);
+            gnrc_pktbuf_release_error(pkt, ETIMEDOUT);
+            return;
+        }
+
+#else  /* MODULE_GNRC_IPV4_ROUTER */
+        DEBUG("ipv4: dropping packet\n");
+        /* non rounting hosts just drop the packet */
+        gnrc_pktbuf_release(pkt);
+        return;
+#endif /* MODULE_GNRC_IPV4_ROUTER */
+    }
+    DEBUG("ipv4: packet destination if for me !!!!!!!\n");
+
+    _demux(netif, pkt, protocol);
 }
 
 /** @} */

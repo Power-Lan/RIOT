@@ -132,18 +132,21 @@ static void _send_request(ipv4_addr_t *ipv4, gnrc_netif_t *netif)
 
 static void _receive_response(msg_t *msg, arp_payload_t *payload)
 {
+    DEBUG("ipv4_arp: _receive_response msg->sender_pid:%d\n", msg->sender_pid);
+    DEBUG("ipv4_arp: _receive_response payload->sender_protocol_addr:%s\n", ipv4_addr_to_str(ipv4_addr, &payload->sender_protocol_addr, IPV4_ADDR_MAX_STR_LEN));
+
   for (int i=0; i<ARP_TABLE_SIZE; i++) {
-    if (ipv4_addr_equal(&arp_table[i].ipv4, &payload->target_protocol_addr) && arp_table[i].iface == msg->sender_pid) {
-      memcpy(&arp_table[i].mac, payload->target_hw_addr, ARP_MAC_SIZE);
+    if (ipv4_addr_equal(&arp_table[i].ipv4, &payload->sender_protocol_addr) && arp_table[i].iface == msg->sender_pid) {
+      memcpy(&arp_table[i].mac, payload->sender_hw_addr, ARP_MAC_SIZE);
       arp_table[i].flags = ARP_FLAG_COMPLETE;
       DEBUG("ipv4_arp: %s is now %02X:%02X:%02X:%02X:%02X:%02X\n",
-        ipv4_addr_to_str(ipv4_addr, &payload->target_protocol_addr, IPV4_ADDR_MAX_STR_LEN),
-        payload->target_hw_addr[0],
-        payload->target_hw_addr[1],
-        payload->target_hw_addr[2],
-        payload->target_hw_addr[3],
-        payload->target_hw_addr[4],
-        payload->target_hw_addr[5]);
+        ipv4_addr_to_str(ipv4_addr, &payload->sender_protocol_addr, IPV4_ADDR_MAX_STR_LEN),
+        payload->sender_hw_addr[0],
+        payload->sender_hw_addr[1],
+        payload->sender_hw_addr[2],
+        payload->sender_hw_addr[3],
+        payload->sender_hw_addr[4],
+        payload->sender_hw_addr[5]);
 
       break;
     }
@@ -185,7 +188,9 @@ static void _receive(msg_t *msg)
   }
 
   if (byteorder_ntohs(payload->opcode) == 2) {
+      DEBUG("ipv4_arp: opcode reply\n");
       _receive_response(msg, payload);
+      gnrc_pktbuf_release(pkt);
       return;
   }
 
@@ -286,7 +291,7 @@ static void _get(msg_t *msg, msg_t *reply)
       arp_table[i].flags = ARP_FLAG_KNOWN;
 
       DEBUG("ipv4_arp: adding %s for iface %d in table\n",
-        ipv4_addr_to_str(ipv4_addr, &request->ipv4, IPV4_ADDR_MAX_STR_LEN), request->iface);
+        ipv4_addr_to_str(ipv4_addr, &arp_table[i].ipv4, IPV4_ADDR_MAX_STR_LEN), arp_table[i].iface);
 
       // Send ARP
       _send_request(&request->ipv4, gnrc_netif_get_by_pid(request->iface));

@@ -146,7 +146,7 @@ static inline void ipv4_hdr_set_ihl(ipv4_hdr_t *hdr, uint16_t ihl)
  *
  * @param[in] hdr   Pointer to an IPv4 header.
  *
- * @return Size in bytes of the Internet Header Length field of @p hdr
+ * @return Size in bites of the Internet Header Length field of @p hdr
  */
 static inline uint16_t ipv4_hdr_get_ihl(ipv4_hdr_t *hdr)
 {

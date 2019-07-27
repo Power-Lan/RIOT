@@ -60,10 +60,11 @@ int main(void)
     //ipv6_addr_t ipv6_addrs[GNRC_NETIF_IPV4_ADDRS_NUMOF];
     char ipv4_addr[IPV4_ADDR_MAX_STR_LEN];
     ipv4_addr_t set_ipv4_addr = {{192, 168, 0, 222}};
+    //ipv4_addr_t set_ipv4_addr = {{192, 168, 11, 222}};
     printf("My netif->pid is %d\n", netif->pid);
     addr_mask = ipv4_mask_to_addr(24);
     printf("My mask is %s\n", ipv4_addr_to_str(ipv4_addr, &addr_mask, IPV4_ADDR_MAX_STR_LEN));
-    xtimer_usleep(20000);
+    //xtimer_usleep(1000000); // 100ms
 
     int res = gnrc_netapi_set(netif->pid, NETOPT_IPV4_ADDR, 24, &set_ipv4_addr, sizeof(set_ipv4_addr));
     /*printf("My res= is %d\n", res);
