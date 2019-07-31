@@ -68,31 +68,24 @@ void gnrc_icmpv4_demux(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
         gnrc_pktbuf_release(pkt);
         return;
     }
-    DEBUG("icmpv4: size:%d\n", icmpv4->size);
-
-    /* Resize pkt using realsize of icmp payload */
-    /* TODO fix this icmpv4->size=20 and it's wrong   */
-    /*if (icmpv4->size < pkt->size) {
-        gnrc_pktbuf_realloc_data(pkt, icmpv4->size);
-    }*/
 
     /* Note: size will be checked again in packet handlers */
 
     hdr = (icmpv4_hdr_t *)icmpv4->data;
 
-    /* TODO Verify icmp checksum */
-   /* if (_calc_csum(icmpv4, ipv4, pkt)) {
+    if (_calc_csum(icmpv4, ipv4, pkt)) {
         DEBUG("icmpv4: wrong checksum.\n");
         gnrc_pktbuf_release(pkt);
         return;
-    }*/
-ipv4_hdr_t * ipv4_hdr = (ipv4_hdr_t *) ipv4->data;
+    }
+
     switch (hdr->type) {
         /* TODO: handle ICMPv4 errors */
 #ifdef MODULE_GNRC_ICMPV4_ECHO
         case ICMPV4_ECHO_REQ:
             DEBUG("icmpv4: handle echo request.\n");
-            gnrc_icmpv4_echo_req_handle(netif, ipv4_hdr, (icmpv4_echo_t *)hdr, byteorder_ntohs(ipv4_hdr->tl) -sizeof(ipv4_hdr_t) -8 + sizeof(icmpv4_echo_t));
+            gnrc_icmpv4_echo_req_handle(netif, (ipv4_hdr_t *)ipv4->data,
+                                        (icmpv4_echo_t *)hdr, icmpv4->size);
             break;
 #endif
 
@@ -143,7 +136,7 @@ int gnrc_icmpv4_calc_csum(gnrc_pktsnip_t *hdr, gnrc_pktsnip_t *pseudo_hdr)
     }
 
     csum = _calc_csum(hdr, pseudo_hdr, hdr->next);
-    DEBUG("icmpv4: checksum is %x\n", csum);
+
     if (csum == 0) {
         return -ENOENT;
     }

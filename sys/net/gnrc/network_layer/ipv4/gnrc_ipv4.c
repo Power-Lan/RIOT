@@ -569,7 +569,7 @@ static void _receive(gnrc_pktsnip_t *pkt)
     /* if available, remove any padding that was added by lower layers
      * to fulfill their minimum size requirements (e.g. ethernet) */
     else if ((ipv4 != pkt) && (ipv4_payload_len < pkt->size)) {
-        gnrc_pktbuf_realloc_data(pkt, ipv4_hdr_len);
+        gnrc_pktbuf_realloc_data(pkt, ipv4_payload_len);
     }
     else if (ipv4_payload_len > (gnrc_pkt_len_upto(pkt, GNRC_NETTYPE_IPV4) - sizeof(ipv4_hdr_t))) {
         DEBUG("ipv4: invalid payload length: %d, actual: %d, dropping packet\n",
