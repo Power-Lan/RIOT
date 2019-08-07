@@ -571,7 +571,7 @@ static inline unsigned _ipv4_get_state(const gnrc_netif_t *netif, unsigned idx);
 static int _ipv4_match_to_idx(const gnrc_netif_t *netif,
                          const ipv4_addr_t *addr,
                          const uint8_t *filter);
-static inline bool _addr_anycast(const gnrc_netif_t *netif, unsigned idx);
+static inline bool _ipv4_addr_anycast(const gnrc_netif_t *netif, unsigned idx);
 
 
 int gnrc_netif_ipv4_addr_add_internal(gnrc_netif_t *netif,
@@ -735,7 +735,7 @@ static int _ipv4_match_to_idx(const gnrc_netif_t *netif,
         unsigned match;
 
         if ((netif->ipv4.addrs_flags[i] == 0) ||
-            ((filter != NULL) && _addr_anycast(netif, i)) ||
+            ((filter != NULL) && _ipv4_addr_anycast(netif, i)) ||
             /* discard const intentionally */
             ((filter != NULL) && !(bf_isset((uint8_t *)filter, i)))) {
             continue;
@@ -767,7 +767,7 @@ static int _ipv4_match_to_idx(const gnrc_netif_t *netif,
     return idx;
 }
 
-static inline bool _addr_anycast(const gnrc_netif_t *netif, unsigned idx)
+static inline bool _ipv4_addr_anycast(const gnrc_netif_t *netif, unsigned idx)
 {
     return (netif->ipv4.addrs_flags[idx] & GNRC_NETIF_IPV4_ADDRS_FLAGS_ANYCAST);
 }

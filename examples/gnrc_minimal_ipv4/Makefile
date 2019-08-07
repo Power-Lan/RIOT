@@ -40,6 +40,8 @@ USEMODULE += ps
 USEMODULE += gnrc_icmpv4_echo
 USEMODULE += gnrc_icmpv4_error
 
+# Udp support
+USEMODULE += gnrc_udp
 ifeq (esp32-olimex-evb,$(BOARD))
     USEMODULE += olimex_esp32_gateway
 endif

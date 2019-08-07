@@ -218,6 +218,18 @@ static inline void ipv4_hdr_inet_csum(ipv4_hdr_t *hdr)
     hdr->csum = byteorder_htons(~csum);
 }
 
+static inline uint16_t ipv4_hdr_inet_csum_prot(uint16_t sum, ipv4_hdr_t *hdr,
+                                          uint8_t prot_num, uint16_t len)
+{
+    if (((uint32_t)sum + len + prot_num) > 0xffff) {
+        /* increment by one for overflow to keep it as 1's complement sum */
+        sum++;
+    }
+
+    return inet_csum(sum + len + prot_num, hdr->src.u8,
+                     (2 * sizeof(ipv4_addr_t)));
+}
+
 /**
  * @brief   Outputs an IPv4 header to stdout.
  *

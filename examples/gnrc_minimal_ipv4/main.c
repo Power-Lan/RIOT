@@ -31,7 +31,7 @@
 #define MAIN_QUEUE_SIZE     (8)
 static msg_t _main_msg_queue[MAIN_QUEUE_SIZE];
 
-//extern int udp_cmd(int argc, char **argv);
+extern int udp_cmd(int argc, char **argv);
 extern int _gnrc_icmpv4_ping(int argc, char **argv);
 
 
@@ -41,7 +41,7 @@ int _gnrc_icmpv4_ping_fake(int argc, char **argv) {
 }
 
 static const shell_command_t shell_commands[] = {
-    //{ "udp", "send data over UDP and listen on UDP ports", udp_cmd },
+    { "udp", "send data over UDP and listen on UDP ports", udp_cmd },
     { "ping4", "Ping via ICMPv4", _gnrc_icmpv4_ping },
     { "pt", "ping4 192.168.0.254", _gnrc_icmpv4_ping_fake },
     { NULL, NULL, NULL }
