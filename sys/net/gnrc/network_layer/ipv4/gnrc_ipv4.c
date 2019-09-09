@@ -60,7 +60,7 @@ static void *_event_loop(void *args);
 kernel_pid_t gnrc_ipv4_init(void)
 {
     gnrc_ipv4_arp_init();
-    
+
     if (gnrc_ipv4_pid == KERNEL_PID_UNDEF) {
         gnrc_ipv4_pid = thread_create(_stack, sizeof(_stack), GNRC_IPV4_PRIO,
                                       THREAD_CREATE_STACKTEST,
@@ -330,10 +330,20 @@ static void _send_unicast(gnrc_pktsnip_t *pkt, bool prep_hdr,
                           gnrc_netif_t *netif, ipv4_hdr_t *ipv4_hdr,
                           uint8_t netif_hdr_flags)
 {
+    DEBUG("ipv4: send unicast\n");
+
+    ipv4_addr_t hop;
+    gnrc_ipv4_route_get_next_hop_l2addr(&ipv4_hdr->dst, &netif, &hop);
+    if (netif == NULL) {
+      gnrc_pktbuf_release_error(pkt, EHOSTUNREACH);
+      return;
+    }
+
     // prepare arp query
     arp_netapi_get_t arp_query;
-    arp_query.ipv4 = ipv4_hdr->dst;
+    arp_query.ipv4 = hop;
     arp_query.iface = netif->pid;
+
     // send query
     uint16_t result = 1;
     printf("gnrc_ipv4: prepare arp query to gnrc_ipv4_arp\n");
@@ -352,19 +362,8 @@ static void _send_unicast(gnrc_pktsnip_t *pkt, bool prep_hdr,
         return;
     }
 
-    DEBUG("ipv4: send unicast\n");
-#if 0
-    if (gnrc_ipv4_nib_get_next_hop_l2addr(&ipv4_hdr->dst, netif, pkt,
-                                          &nce) < 0) {
-        /* packet is released by NIB */
-        DEBUG("ipv4: no link-layer address or interface for next hop to %s",
-              ipv4_addr_to_str(addr_str, &ipv4_hdr->dst, sizeof(addr_str)));
-        return;
-    }
 
-    netif = gnrc_netif_get_by_pid(gnrc_ipv4_nib_nc_get_iface(&nce));
-    assert(netif != NULL);
-#endif
+
     if (_safe_fill_ipv4_hdr(netif, pkt, prep_hdr)) {
         DEBUG("ipv4: add interface header to packet\n");
         if ((pkt = _create_netif_hdr(arp_query.mac, sizeof(arp_query.mac), pkt,
@@ -659,6 +658,7 @@ static void _receive(gnrc_pktsnip_t *pkt)
         gnrc_pktbuf_release(pkt);
         return;
 #endif /* MODULE_GNRC_IPV4_ROUTER */
+
     }
     DEBUG("ipv4: packet destination if for me !!!!!!!\n");
 

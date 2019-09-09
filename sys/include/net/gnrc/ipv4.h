@@ -179,6 +179,21 @@ extern kernel_pid_t gnrc_ipv4_pid;
 kernel_pid_t gnrc_ipv4_init(void);
 
 
+typedef struct _gnrc_ipv4_route {
+  kernel_pid_t iface;
+  ipv4_addr_t dst;
+  ipv4_addr_t network;
+  ipv4_addr_t mask;
+  uint8_t metric;
+} gnrc_ipv4_route_t;
+
+#ifndef GNRC_IPV4_ROUTE_TABLE_SIZE
+#define GNRC_IPV4_ROUTE_TABLE_SIZE    (8U)
+#endif
+
+extern gnrc_ipv4_route_t gnrc_ipv4_route[GNRC_IPV4_ROUTE_TABLE_SIZE];
+void gnrc_ipv4_route_get_next_hop_l2addr(const ipv4_addr_t *dst, gnrc_netif_t **netif, ipv4_addr_t *hop);
+
 #ifdef __cplusplus
 }
 #endif
