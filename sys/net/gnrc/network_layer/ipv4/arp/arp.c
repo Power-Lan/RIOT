@@ -44,6 +44,12 @@ static arp_t arp_table[ARP_TABLE_SIZE];
 static bool havePendingRequests(void)
 {
   for (int i=0; i<ARP_TABLE_SIZE; i++) {
+    arp_table[i].retryCount--;
+    if (arp_table[i].retryCount == 0) {
+      arp_table[i].flags = 0;
+      continue;
+    }
+
     if (arp_table[i].flags == 0) {
       continue;
     }
@@ -322,6 +328,7 @@ static void _get(msg_t *msg, msg_t *reply)
       arp_table[i].ipv4 = request->ipv4;
       arp_table[i].iface = request->iface;
       arp_table[i].flags = ARP_FLAG_KNOWN;
+      arp_table[i].retryCount = ARP_RETRY_COUNT;
 
       DEBUG("ipv4_arp: adding %s for iface %d in table\n",
         ipv4_addr_to_str(ipv4_addr, &arp_table[i].ipv4, IPV4_ADDR_MAX_STR_LEN), arp_table[i].iface);

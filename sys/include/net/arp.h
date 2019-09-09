@@ -15,11 +15,16 @@ extern "C" {
 #define ARP_FLAG_KNOWN      (1)
 #define ARP_FLAG_COMPLETE   (2)
 
+#ifndef ARP_RETRY_COUNT
+#define ARP_RETRY_COUNT     (2)
+#endif
+
 typedef struct __attribute__((packed)) {
     ipv4_addr_t ipv4;
     ipv4_addr_t mask;
     uint8_t mac[ARP_MAC_SIZE];
     uint8_t flags;
+    uint8_t retryCount;
     kernel_pid_t iface;
 } arp_t;
 
