@@ -16,7 +16,7 @@ extern "C" {
 #define ARP_FLAG_COMPLETE   (2)
 
 #ifndef ARP_RETRY_COUNT
-#define ARP_RETRY_COUNT     (2)
+#define ARP_RETRY_COUNT     (3)
 #endif
 
 typedef struct __attribute__((packed)) {
