@@ -41,6 +41,39 @@ kernel_pid_t gnrc_ipv4_arp_pid = KERNEL_PID_UNDEF;
 #define ARP_TABLE_SIZE  (8)
 static arp_t arp_table[ARP_TABLE_SIZE];
 
+static bool havePendingRequests(void)
+{
+  for (int i=0; i<ARP_TABLE_SIZE; i++) {
+    if (arp_table[i].flags == 0) {
+      continue;
+    }
+
+    if (arp_table[i].flags != ARP_FLAG_COMPLETE) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+static void advertisePendingRequests(void)
+{
+  for (int i=0; i<ARP_TABLE_SIZE; i++) {
+    // Empty entries
+    if (arp_table[i].flags == 0) {
+      continue;
+    }
+
+    // Complete entry
+    if (arp_table[i].flags == ARP_FLAG_COMPLETE) {
+      continue;
+    }
+
+    // Send ARP
+    _send_request(arp_table[i].ipv4, gnrc_netif_get_by_pid(arp_table[i].iface));
+  }
+}
+
 static void _send_response(arp_payload_t *request, gnrc_netif_t *netif)
 {
   // Build ARP response
@@ -325,7 +358,15 @@ static void *_event_loop(void *args)
     /* start event loop */
     while (1) {
         DEBUG("ipv4_arp: waiting for incoming message.\n");
-        msg_receive(&msg);
+        int timeout = xtimer_msg_receive_timeout(&msg, XTIMER_HZ_BASE);
+        if (timeout < 0) {
+          if (havePendingRequests()) {
+            advertisePendingRequests();
+            continue;
+          } else {
+            msg_receive(&msg);
+          }
+        }
 
         switch (msg.type) {
             case GNRC_NETAPI_MSG_TYPE_RCV:
