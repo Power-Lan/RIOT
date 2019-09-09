@@ -104,6 +104,26 @@ typedef icmp_error_param_prob_t icmpv4_error_param_prob_t;
 #define ICMPV4_PARAM_PROB   (12)  /**< Perameter problem */
 #define ICMPV4_PKT_TOO_BIG  ICMPV4_PARAM_PROB
 
+/**
+ * @{
+ * @name Codes for destination unreachable messages
+ *
+ * @anchor net_ICMPV4_error_dst_unr_codes
+ * @see <a href="https://tools.ietf.org/html/rfc4443#section-3.1">
+ *          RFC 4443, section 3.1
+ *      </a>
+ */
+#define ICMPV4_ERROR_DST_UNR_NO_ROUTE   (0) /**< no route to destination */
+#define ICMPV4_ERROR_DST_UNR_PROHIB     (1) /**< communication with
+                                             *   destination administratively
+                                             *   prohibited */
+#define ICMPV4_ERROR_DST_UNR_SCOPE      (2) /**< beyond scope of source address */
+#define ICMPV4_ERROR_DST_UNR_ADDR       (3) /**< address unreachable */
+#define ICMPV4_ERROR_DST_UNR_PORT       (4) /**< port unreachable */
+#define ICMPV4_ERROR_DST_UNR_POLICY     (5) /**< source address failed ingress/egress
+                                             *   policy */
+#define ICMPV4_ERROR_DST_UNR_REJECT     (6) /**< reject route to destination */
+
 #ifdef __cplusplus
 }
 #endif
