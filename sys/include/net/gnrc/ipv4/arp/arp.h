@@ -15,10 +15,11 @@ extern "C" {
  * @{
  */
 /**
- * @brief   Default stack size to use for the IPv6 thread
+ * @brief   Default stack size to use for the ARP thread,
+            Max see with ps command: 1064
  */
 #ifndef GNRC_IPV4_ARP_STACK_SIZE
-#define GNRC_IPV4_ARP_STACK_SIZE        (THREAD_STACKSIZE_DEFAULT)
+#define GNRC_IPV4_ARP_STACK_SIZE        (2048)
 #endif
 
 /**
