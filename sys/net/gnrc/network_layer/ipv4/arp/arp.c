@@ -56,24 +56,6 @@ static bool havePendingRequests(void)
   return false;
 }
 
-static void advertisePendingRequests(void)
-{
-  for (int i=0; i<ARP_TABLE_SIZE; i++) {
-    // Empty entries
-    if (arp_table[i].flags == 0) {
-      continue;
-    }
-
-    // Complete entry
-    if (arp_table[i].flags == ARP_FLAG_COMPLETE) {
-      continue;
-    }
-
-    // Send ARP
-    _send_request(arp_table[i].ipv4, gnrc_netif_get_by_pid(arp_table[i].iface));
-  }
-}
-
 static void _send_response(arp_payload_t *request, gnrc_netif_t *netif)
 {
   // Build ARP response
@@ -160,6 +142,24 @@ static void _send_request(ipv4_addr_t *ipv4, gnrc_netif_t *netif)
   if (gnrc_netapi_send(netif->pid, pkt) < 1) {
       DEBUG("ipv4_arp: unable to send packet\n");
       gnrc_pktbuf_release(pkt);
+  }
+}
+
+static void advertisePendingRequests(void)
+{
+  for (int i=0; i<ARP_TABLE_SIZE; i++) {
+    // Empty entries
+    if (arp_table[i].flags == 0) {
+      continue;
+    }
+
+    // Complete entry
+    if (arp_table[i].flags == ARP_FLAG_COMPLETE) {
+      continue;
+    }
+
+    // Send ARP
+    _send_request(&arp_table[i].ipv4, gnrc_netif_get_by_pid(arp_table[i].iface));
   }
 }
 
