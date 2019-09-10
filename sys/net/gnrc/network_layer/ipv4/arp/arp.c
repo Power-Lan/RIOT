@@ -314,8 +314,9 @@ static void _get(msg_t *msg, msg_t *reply)
         // IP and MAC known
         memcpy(&request->mac, &arp_table[i].mac, ARP_MAC_SIZE);
 
-        DEBUG("ipv4_arp: %s known as %02X:%02X:%02X:%02X:%02X:%02X\n",
+        DEBUG("ipv4_arp: %s iface=%d known as %02X:%02X:%02X:%02X:%02X:%02X\n",
           ipv4_addr_to_str(ipv4_addr, &request->ipv4, IPV4_ADDR_MAX_STR_LEN),
+          request->iface,
           request->mac[0],
           request->mac[1],
           request->mac[2],
@@ -327,9 +328,9 @@ static void _get(msg_t *msg, msg_t *reply)
         msg_reply(msg, reply);
         return;
       } else {
-        DEBUG("ipv4_arp: %s have partial informations\n",
-          ipv4_addr_to_str(ipv4_addr, &request->ipv4, IPV4_ADDR_MAX_STR_LEN));
-
+        DEBUG("ipv4_arp: %s iface=%d have partial informations\n",
+          ipv4_addr_to_str(ipv4_addr, &request->ipv4, IPV4_ADDR_MAX_STR_LEN),
+          request->iface);
         // IP known, but not the MAC
         reply->content.value = -EAGAIN;
         msg_reply(msg, reply);
@@ -339,6 +340,8 @@ static void _get(msg_t *msg, msg_t *reply)
   }
 
   // Unknown IP
+          DEBUG("ipv4_arp: %s is unknown IP\n",
+          ipv4_addr_to_str(ipv4_addr, &request->ipv4, IPV4_ADDR_MAX_STR_LEN));
   for (int i=0; i<ARP_TABLE_SIZE; i++) {
     if (arp_table[i].flags == 0) {
       // Reserve sapce in ARP table
