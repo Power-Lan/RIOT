@@ -137,8 +137,13 @@ static bool gnrc_ipv4_route_same_network(const ipv4_addr_t *dst, gnrc_netif_t *n
   return false;
 }
 
-void gnrc_ipv4_route_get_next_hop_l2addr(const ipv4_addr_t *dst, gnrc_netif_t **netif, ipv4_addr_t *hop)
+void gnrc_ipv4_route_get_next_hop_l2addr(const ipv4_addr_t *dst, gnrc_netif_t **netif, gnrc_pktsnip_t *pkt, ipv4_addr_t *hop)
 {
+  ipv4_hdr_t *hdr = pkt->data;
+
+  ipv4_addr_t set_ipv4_addr = {{192, 168, 0, 222}};
+  memcpy(&hdr->src, &set_ipv4_addr, sizeof(ipv4_addr_t));
+
   /* Search if the destination can be contacted directly */
   DEBUG("gnrc_ipv4_route: Search in the known netowrks\n");
 
