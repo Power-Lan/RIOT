@@ -34,6 +34,7 @@ static const char *_netopt_strmap[] = {
     [NETOPT_HOP_LIMIT]             = "NETOPT_HOP_LIMIT",
     [NETOPT_IPV6_IID]              = "NETOPT_IPV6_IID",
     [NETOPT_IPV4_ADDR]             = "NETOPT_IPV4_ADDR",
+    [NETOPT_IPV4_MASK]             = "NETOPT_IPV4_MASK",
     [NETOPT_IPV4_ADDR_REMOVE]      = "NETOPT_IPV4_ADDR_REMOVE",
     [NETOPT_IPV4_ADDR_FLAGS]       = "NETOPT_IPV4_ADDR_FLAGS",
     [NETOPT_IPV6_ADDR]             = "NETOPT_IPV6_ADDR",

@@ -116,6 +116,7 @@ typedef enum {
      * its maximum and the remaining addresses on the interface will be ignored
      */
     NETOPT_IPV4_ADDR,
+    NETOPT_IPV4_MASK,
     /**
      * @brief   (@ref ipv4_addr_t) Removes an IPv6 address from an interface
      */

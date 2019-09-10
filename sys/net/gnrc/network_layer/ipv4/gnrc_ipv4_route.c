@@ -63,11 +63,15 @@ static bool gnrc_ipv4_route_same_network(const ipv4_addr_t *dst, gnrc_netif_t *n
   int res;
   ipv4_addr_t addrs[GNRC_NETIF_IPV4_ADDRS_NUMOF];
   res = gnrc_netapi_get(netif->pid, NETOPT_IPV4_ADDR, 0, addrs, sizeof(addrs));
-  assert(res == 0);
+  if(res <= 0) {
+    return false;
+  }
 
   ipv4_addr_t masks[GNRC_NETIF_IPV4_ADDRS_NUMOF];
   res = gnrc_netapi_get(netif->pid, NETOPT_IPV4_MASK, 0, masks, sizeof(masks));
-  assert(res == 0);
+  if(res <= 0) {
+    return false;
+  }
 
   for (size_t i=0; i < (size_t)(res / sizeof(ipv4_addr_t)); i++) {
     if (ipv4_addr_is_unspecified(&addrs[i])) {
@@ -75,7 +79,6 @@ static bool gnrc_ipv4_route_same_network(const ipv4_addr_t *dst, gnrc_netif_t *n
     }
 
     if (ipv4_addr_match_prefix(&addrs[i], &masks[i], dst)) {
-      *hop = addrs[i];
       return true;
     }
   }
@@ -88,6 +91,7 @@ void gnrc_ipv4_route_get_next_hop_l2addr(const ipv4_addr_t *dst, gnrc_netif_t **
   /* Search if the destination can be contacted directly */
   if (*netif != NULL) {
     if (gnrc_ipv4_route_same_network(dst, *netif, hop)) {
+        *hop = *dst;
       return;
     }
   } else {
@@ -95,6 +99,7 @@ void gnrc_ipv4_route_get_next_hop_l2addr(const ipv4_addr_t *dst, gnrc_netif_t **
     while ((it = gnrc_netif_iter(it))) {
       if (gnrc_ipv4_route_same_network(dst, it, hop)) {
         *netif = it;
+        *hop = *dst;
         return;
       }
     }

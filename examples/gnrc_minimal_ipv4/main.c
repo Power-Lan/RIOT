@@ -32,6 +32,9 @@
 static msg_t _main_msg_queue[MAIN_QUEUE_SIZE];
 
 extern int udp_cmd(int argc, char **argv);
+#ifdef MODULE_GNRC_TCP
+    extern int tcp_cmd(int argc, char **argv);
+#endif
 extern int _gnrc_icmpv4_ping(int argc, char **argv);
 
 
@@ -42,6 +45,9 @@ int _gnrc_icmpv4_ping_fake(int argc, char **argv) {
 
 static const shell_command_t shell_commands[] = {
     { "udp", "send data over UDP and listen on UDP ports", udp_cmd },
+#ifdef MODULE_GNRC_TCP
+    { "tcp", "send data over TCP and listen on TCP ports", tcp_cmd },
+#endif
     { "ping4", "Ping via ICMPv4", _gnrc_icmpv4_ping },
     { "pt", "ping4 192.168.0.254", _gnrc_icmpv4_ping_fake },
     { NULL, NULL, NULL }
@@ -66,7 +72,8 @@ int main(void)
     printf("My mask is %s\n", ipv4_addr_to_str(ipv4_addr, &addr_mask, IPV4_ADDR_MAX_STR_LEN));
     //xtimer_usleep(1000000); // 100ms
 
-    int res = gnrc_netapi_set(netif->pid, NETOPT_IPV4_ADDR, 24, &set_ipv4_addr, sizeof(set_ipv4_addr));
+    int res = gnrc_netif_ipv4_addr_add(netif, &set_ipv4_addr, 24, 0);
+
     /*printf("My res= is %d\n", res);
     res = gnrc_netapi_get(netif->pid, NETOPT_IPV6_ADDR, 0, ipv6_addrs, sizeof(ipv6_addrs));
     printf("My res= is %d\n", res);

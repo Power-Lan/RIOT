@@ -347,30 +347,30 @@ static inline int gnrc_netif_ipv6_addr_add(const gnrc_netif_t *netif,
  *
  * @pre `netif != NULL`
  * @pre `addr != NULL`
- * @pre `(pfx_len > 0) && (pfx_len <= 32)`
+ * @pre `(mask > 0) && (mask <= 32)`
  *
  * @param[in] netif     The interface. May not be `NULL`.
  * @param[in] addr      The address to add to @p netif. May not be `NULL`.
- * @param[in] pfx_len   The prefix length of @p addr. Must be greater than 0 and
+ * @param[in] mask   The mask of @p addr. Must be greater than 0 and
  *                      lesser than or equal to 32.
  * @param[in] flags     [Flags](@ref net_gnrc_netif_ipv4_addrs_flags) for
  *                      @p addr. Set @ref GNRC_NETIF_IPV4_ADDRS_FLAGS_STATE_VALID
  *                      to skip duplicate address detection (when activated).
  *
- * @return  sizeof(ipv6_addr_t) on success.
+ * @return  sizeof(ipv4_addr_t) on success.
  * @return  -ENOMEM, if no space is left on @p netif to add @p addr or its
  *          corresponding solicited-nodes multicast address.
- * @return  -ENOTSUP, if @p netif doesn't support IPv6.
+ * @return  -ENOTSUP, if @p netif doesn't support IPv4.
  */
 static inline int gnrc_netif_ipv4_addr_add(const gnrc_netif_t *netif,
-                                           ipv4_addr_t *addr, unsigned pfx_len,
+                                           ipv4_addr_t *addr, unsigned mask,
                                            uint8_t flags)
 {
     assert(netif != NULL);
     assert(addr != NULL);
-    assert((pfx_len > 0) && (pfx_len <= 32));
+    assert((mask > 0) && (mask <= 32));
     return gnrc_netapi_set(netif->pid, NETOPT_IPV4_ADDR,
-                           ((pfx_len << 8U) | flags), addr,
+                           ((mask << 8U) | flags), addr,
                            sizeof(ipv4_addr_t));
 }
 

@@ -196,7 +196,7 @@ static int _fill_ipv4_hdr(gnrc_netif_t *netif, gnrc_pktsnip_t *ipv4)
 
             ipv4_addr_t *src = gnrc_netif_ipv4_addr_best_src(netif, &hdr->dst,
                                                              false);
-            ipv4_addr_t set_ipv4_addr = {{192, 168, 0, 222}};
+            ipv4_addr_t set_ipv4_addr = {{192, 168, 0, 222}}; // TODO implement gnrc_netif_ipv4_addr_best_src
             src = &set_ipv4_addr;
             if (src != NULL) {
                 char addr_str[IPV4_ADDR_MAX_STR_LEN];
@@ -335,6 +335,7 @@ static void _send_unicast(gnrc_pktsnip_t *pkt, bool prep_hdr,
     ipv4_addr_t hop;
     gnrc_ipv4_route_get_next_hop_l2addr(&ipv4_hdr->dst, &netif, &hop);
     if (netif == NULL) {
+      DEBUG("ipv4: send unicast no route to host\n");
       gnrc_pktbuf_release_error(pkt, EHOSTUNREACH);
       return;
     }
@@ -594,71 +595,10 @@ static void _receive(gnrc_pktsnip_t *pkt)
 
     if (_pkt_not_for_me(&netif, hdr)) { /* if packet is not for me */
         DEBUG("ipv4: packet destination not this host\n");
-
-#ifdef MODULE_GNRC_IPV4_ROUTER    /* only routers redirect */
-        /* redirect to next hop */
-        DEBUG("ipv4: decrement hop limit to %u\n", (uint8_t) (hdr->ttl - 1));
-
-        /* RFC 4291, section 2.5.6 states: "Routers must not forward any
-         * packets with Link-Local source or destination addresses to other
-         * links."
-         */
-        if ((ipv4_addr_is_link_local(&(hdr->src))) || (ipv4_addr_is_link_local(&(hdr->dst)))) {
-            DEBUG("ipv4: do not forward packets with link-local source or"
-                  " destination address\n");
-#ifdef MODULE_GNRC_ICMPV4_ERROR
-            if (ipv4_addr_is_link_local(&(hdr->src)) &&
-                !ipv4_addr_is_link_local(&(hdr->dst))) {
-                gnrc_icmpv4_error_dst_unr_send(ICMPV4_ERROR_DST_UNR_SCOPE, pkt);
-            }
-            else if (!ipv4_addr_is_multicast(&(hdr->dst))) {
-                gnrc_icmpv4_error_dst_unr_send(ICMPV4_ERROR_DST_UNR_ADDR, pkt);
-            }
-#endif
-            gnrc_pktbuf_release(pkt);
-            return;
-        }
-        /* TODO: check if receiving interface is router */
-        else if (--(hdr->hl) > 0) {  /* drop packets that *reach* Hop Limit 0 */
-            DEBUG("ipv6: forward packet to next hop\n");
-
-            /* pkt might not be writable yet, if header was given above */
-            ipv6 = gnrc_pktbuf_start_write(ipv6);
-            if (ipv6 == NULL) {
-                DEBUG("ipv6: unable to get write access to packet: dropping it\n");
-                gnrc_pktbuf_release(pkt);
-                return;
-            }
-
-            /* remove L2 headers around IPV6 */
-            netif_hdr = gnrc_pktsnip_search_type(pkt, GNRC_NETTYPE_NETIF);
-            if (netif_hdr != NULL) {
-                gnrc_pktbuf_remove_snip(pkt, netif_hdr);
-            }
-            pkt = gnrc_pktbuf_reverse_snips(pkt);
-            if (pkt != NULL) {
-                _send(pkt, false);
-            }
-            else {
-                DEBUG("ipv6: unable to reverse pkt from receive order to send "
-                      "order; dropping it\n");
-            }
-            return;
-        }
-        else {
-            DEBUG("ipv6: hop limit reached 0: drop packet\n");
-            gnrc_icmpv6_error_time_exc_send(ICMPV6_ERROR_TIME_EXC_HL, pkt);
-            gnrc_pktbuf_release_error(pkt, ETIMEDOUT);
-            return;
-        }
-
-#else  /* MODULE_GNRC_IPV4_ROUTER */
+        /* TODO Add routing code */
         DEBUG("ipv4: dropping packet\n");
-        /* non rounting hosts just drop the packet */
         gnrc_pktbuf_release(pkt);
         return;
-#endif /* MODULE_GNRC_IPV4_ROUTER */
-
     }
     DEBUG("ipv4: packet destination if for me !!!!!!!\n");
 

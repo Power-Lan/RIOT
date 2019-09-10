@@ -155,6 +155,22 @@ int gnrc_netif_get_from_netdev(gnrc_netif_t *netif, gnrc_netapi_opt_t *opt)
                 }
             }
             break;
+        case NETOPT_IPV4_MASK: {
+                assert(opt->data_len >= sizeof(ipv4_addr_t));
+                ipv4_addr_t *tgt = opt->data;
+
+                res = 0;
+                for (unsigned i = 0;
+                     (res < (int)opt->data_len) && (i < GNRC_NETIF_IPV4_ADDRS_NUMOF);
+                     i++) {
+                    if (netif->ipv4.addrs_flags[i] != 0) {
+                        memcpy(tgt, &netif->ipv4.addrs_mask[i], sizeof(ipv4_addr_t));
+                        res += sizeof(ipv4_addr_t);
+                        tgt++;
+                    }
+                }
+            }
+            break;
         case NETOPT_IPV4_ADDR_FLAGS: {
                 assert(opt->data_len >= sizeof(uint8_t));
                 uint8_t *tgt = opt->data;
