@@ -35,36 +35,51 @@
 
 #define ENABLE_DEBUG    (1)
 #include "debug.h"
+#if ENABLE_DEBUG == 1
+char ipv4_addr1[IPV4_ADDR_MAX_STR_LEN];
+char ipv4_addr2[IPV4_ADDR_MAX_STR_LEN];
+char ipv4_addr3[IPV4_ADDR_MAX_STR_LEN];
+#endif
 
 gnrc_ipv4_route_t gnrc_ipv4_route[GNRC_IPV4_ROUTE_TABLE_SIZE];
 
-  char ipv4_addr1[IPV4_ADDR_MAX_STR_LEN];
-  char ipv4_addr2[IPV4_ADDR_MAX_STR_LEN];
-  char ipv4_addr3[IPV4_ADDR_MAX_STR_LEN];
+static bool gnrc_ipv4_route_is_empty(gnrc_ipv4_route *route)
+{
+  return ipv4_addr_is_unspecified(&gnrc_ipv4_route[i].gateway) == false;
+}
+
+static void gnrc_ipv4_route_set_empty(gnrc_ipv4_route *route)
+{
+  ipv4_addr_set_unspecified(&gnrc_ipv4_route[i].gateway);
+}
+
+static bool gnrc_ipv4_route_equals(gnrc_ipv4_route *route1, gnrc_ipv4_route *route2)
+{
+  return memcmp(route1, route2, sizeof(gnrc_ipv4_route_t)) == 0;
+}
 
 void gnrc_ipv4_route_delete_all(void)
 {
   for (size_t i=0; i<GNRC_IPV4_ROUTE_TABLE_SIZE; i++) {
-    ipv4_addr_set_unspecified(&gnrc_ipv4_route[i].network);
+    ipv4_addr_set_unspecified(&gnrc_ipv4_route[i].gateway);
   }
 }
 
 bool gnrc_ipv4_route_add(gnrc_ipv4_route_t *route)
 {
-    DEBUG("gnrc_ipv4_route : gnrc_ipv4_route_add\n");
-    DEBUG("gnrc_ipv4_route : network=%s mask=%s dest=%s\n", ipv4_addr_to_str(ipv4_addr1, &route->network, IPV4_ADDR_MAX_STR_LEN)
-                                                          , ipv4_addr_to_str(ipv4_addr2, &route->mask, IPV4_ADDR_MAX_STR_LEN)
-                                                          , ipv4_addr_to_str(ipv4_addr3, &route->dst, IPV4_ADDR_MAX_STR_LEN)
-    );
-  /* Search the requested route in the table */
-  for (size_t i=0; i<GNRC_IPV4_ROUTE_TABLE_SIZE; i++) {
-    if (ipv4_addr_is_unspecified(&gnrc_ipv4_route[i].network) == false) {
-      continue;
-    }
+  DEBUG("gnrc_ipv4_route: add destination=%s mask=%s gateway=%s\n",
+    ipv4_addr_to_str(ipv4_addr1, &route->destination, IPV4_ADDR_MAX_STR_LEN),
+    ipv4_addr_to_str(ipv4_addr2, &route->mask, IPV4_ADDR_MAX_STR_LEN),
+    ipv4_addr_to_str(ipv4_addr3, &route->gateway, IPV4_ADDR_MAX_STR_LEN)
+  );
 
-    memcpy(&gnrc_ipv4_route[i], route, sizeof(gnrc_ipv4_route_t));
-    DEBUG("gnrc_ipv4_route : gnrc_ipv4_route_add sucess\n");
-    return true;
+  /* Search the available space in the table */
+  for (size_t i=0; i<GNRC_IPV4_ROUTE_TABLE_SIZE; i++) {
+    if (gnrc_ipv4_route_is_empty(&gnrc_ipv4_route[i])) {
+      memcpy(&gnrc_ipv4_route[i], route, sizeof(gnrc_ipv4_route_t));
+      DEBUG("gnrc_ipv4_route : gnrc_ipv4_route_add sucess\n");
+      return true;
+    }
   }
 
   /* Route not found */
@@ -73,10 +88,16 @@ bool gnrc_ipv4_route_add(gnrc_ipv4_route_t *route)
 
 bool gnrc_ipv4_route_delete(gnrc_ipv4_route_t *route)
 {
+  DEBUG("gnrc_ipv4_route: delete destination=%s mask=%s gateway=%s\n",
+    ipv4_addr_to_str(ipv4_addr1, &route->destination, IPV4_ADDR_MAX_STR_LEN),
+    ipv4_addr_to_str(ipv4_addr2, &route->mask, IPV4_ADDR_MAX_STR_LEN),
+    ipv4_addr_to_str(ipv4_addr3, &route->gateway, IPV4_ADDR_MAX_STR_LEN)
+  );
+
   /* Search the requested route in the table */
   for (size_t i=0; i<GNRC_IPV4_ROUTE_TABLE_SIZE; i++) {
-    if (memcmp(route, &gnrc_ipv4_route[i], sizeof(gnrc_ipv4_route_t)) == 0) {
-      ipv4_addr_set_unspecified(&gnrc_ipv4_route[i].network);
+    if (gnrc_ipv4_route_equals(route, &gnrc_ipv4_route[i])) {
+      gnrc_ipv4_route_set_empty(&gnrc_ipv4_route[i]);
       return true;
     }
   }
@@ -93,13 +114,13 @@ static bool gnrc_ipv4_route_same_network(const ipv4_addr_t *dst, gnrc_netif_t *n
   int res;
   ipv4_addr_t addrs[GNRC_NETIF_IPV4_ADDRS_NUMOF];
   res = gnrc_netapi_get(netif->pid, NETOPT_IPV4_ADDR, 0, addrs, sizeof(addrs));
-  if(res <= 0) {
+  if (res <= 0) {
     return false;
   }
 
   ipv4_addr_t masks[GNRC_NETIF_IPV4_ADDRS_NUMOF];
   res = gnrc_netapi_get(netif->pid, NETOPT_IPV4_MASK, 0, masks, sizeof(masks));
-  if(res <= 0) {
+  if (res <= 0) {
     return false;
   }
 
@@ -119,6 +140,8 @@ static bool gnrc_ipv4_route_same_network(const ipv4_addr_t *dst, gnrc_netif_t *n
 void gnrc_ipv4_route_get_next_hop_l2addr(const ipv4_addr_t *dst, gnrc_netif_t **netif, ipv4_addr_t *hop)
 {
   /* Search if the destination can be contacted directly */
+  DEBUG("gnrc_ipv4_route: Search in the known netowrks\n");
+
   if (*netif != NULL) {
     if (gnrc_ipv4_route_same_network(dst, *netif, hop)) {
         *hop = *dst;
@@ -136,21 +159,20 @@ void gnrc_ipv4_route_get_next_hop_l2addr(const ipv4_addr_t *dst, gnrc_netif_t **
   }
 
   /* Search in the routing table */
-  DEBUG("gnrc_ipv4_route : Search in the routing table\n");
+  DEBUG("gnrc_ipv4_route: Search in the routing table\n");
   for (size_t i=0; i<GNRC_IPV4_ROUTE_TABLE_SIZE; i++) {
-    if (ipv4_addr_is_unspecified(&gnrc_ipv4_route[i].network)) {
-      DEBUG("gnrc_ipv4_route : ipv4_addr_is_unspecified (%s)\n", ipv4_addr_to_str(ipv4_addr1, &gnrc_ipv4_route[i].network, IPV4_ADDR_MAX_STR_LEN));
+    if (gnrc_ipv4_route_is_empty(&gnrc_ipv4_route[i])) {
       continue;
     }
 
-    DEBUG("gnrc_ipv4_route : network=%s mask=%s dest=%s\n", ipv4_addr_to_str(ipv4_addr1, &gnrc_ipv4_route[i].network, IPV4_ADDR_MAX_STR_LEN)
-                                                          , ipv4_addr_to_str(ipv4_addr2, &gnrc_ipv4_route[i].mask, IPV4_ADDR_MAX_STR_LEN)
-                                                          , ipv4_addr_to_str(ipv4_addr3, dst, IPV4_ADDR_MAX_STR_LEN)
-
+    DEBUG("gnrc_ipv4_route: checking route destination=%s mask=%s gateway=%s\n",
+      ipv4_addr_to_str(ipv4_addr1, &route->destination, IPV4_ADDR_MAX_STR_LEN),
+      ipv4_addr_to_str(ipv4_addr2, &route->mask, IPV4_ADDR_MAX_STR_LEN),
+      ipv4_addr_to_str(ipv4_addr3, &route->gateway, IPV4_ADDR_MAX_STR_LEN)
     );
-    
-    if (ipv4_addr_match_prefix(&gnrc_ipv4_route[i].network, &gnrc_ipv4_route[i].mask, dst)) {
-      *hop = gnrc_ipv4_route[i].dst;
+
+    if (ipv4_addr_match_prefix(&gnrc_ipv4_route[i].destination, &gnrc_ipv4_route[i].mask, dst)) {
+      *hop = gnrc_ipv4_route[i].gateway;
       *netif = gnrc_netif_get_by_pid(gnrc_ipv4_route[i].iface);
       return;
     }

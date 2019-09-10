@@ -181,8 +181,8 @@ kernel_pid_t gnrc_ipv4_init(void);
 
 typedef struct _gnrc_ipv4_route {
   kernel_pid_t iface;
-  ipv4_addr_t dst;
-  ipv4_addr_t network;
+  ipv4_addr_t gateway;
+  ipv4_addr_t destination;
   ipv4_addr_t mask;
   uint8_t metric;
 } gnrc_ipv4_route_t;
