@@ -41,18 +41,38 @@ gnrc_ipv4_route_t gnrc_ipv4_route[GNRC_IPV4_ROUTE_TABLE_SIZE];
 void gnrc_ipv4_route_clear(void)
 {
   for (size_t i=0; i<GNRC_IPV4_ROUTE_TABLE_SIZE; i++) {
-    gnrc_ipv4_route[i].network = ipv4_addr_unspecified;
+    ipv4_addr_set_unspecified(&gnrc_ipv4_route[i].network);
   }
 }
 
-void gnrc_ipv4_route_add(void)
+bool gnrc_ipv4_route_add(gnrc_ipv4_route_t *route)
 {
+  /* Search the requested route in the table */
+  for (size_t i=0; i<GNRC_IPV4_ROUTE_TABLE_SIZE; i++) {
+    if (ipv4_addr_is_unspecified(&gnrc_ipv4_route[i].network)) {
+      continue;
+    }
 
+    memcpy(&gnrc_ipv4_route[i], route, sizeof(gnrc_ipv4_route_t));
+    return true;
+  }
+
+  /* Route not found */
+  return false;
 }
 
-void gnrc_ipv4_route_delete(void)
+bool gnrc_ipv4_route_delete(gnrc_ipv4_route_t *route)
 {
+  /* Search the requested route in the table */
+  for (size_t i=0; i<GNRC_IPV4_ROUTE_TABLE_SIZE; i++) {
+    if (memcmp(route, &gnrc_ipv4_route[i], sizeof(gnrc_ipv4_route_t)) == 0) {
+      ipv4_addr_set_unspecified(&gnrc_ipv4_route[i].network);
+      return true;
+    }
+  }
 
+  /* Route not found */
+  return false;
 }
 
 /*
