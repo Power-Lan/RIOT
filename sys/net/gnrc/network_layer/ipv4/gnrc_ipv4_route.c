@@ -183,9 +183,11 @@ void gnrc_ipv4_route_get_next_hop_l2addr(const ipv4_addr_t *dst, gnrc_netif_t **
       *hop = gnrc_ipv4_route[i].gateway;
 
       // Find best source addr
-      gnrc_ipv4_route_same_network(hop, netif, &src)) {
-      memcpy(&hdr->src, &src, sizeof(ipv4_addr_t));
+      if(gnrc_ipv4_route_same_network(hop, *netif, &src)) {
+        memcpy(&hdr->src, &src, sizeof(ipv4_addr_t));
+      }
       return;
+      
     }
   }
 
