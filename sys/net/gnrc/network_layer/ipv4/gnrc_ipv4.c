@@ -59,6 +59,7 @@ static void *_event_loop(void *args);
 
 kernel_pid_t gnrc_ipv4_init(void)
 {
+    gnrc_ipv4_route_delete_all();
     gnrc_ipv4_arp_init();
 
     if (gnrc_ipv4_pid == KERNEL_PID_UNDEF) {

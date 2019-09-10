@@ -38,7 +38,7 @@
 
 gnrc_ipv4_route_t gnrc_ipv4_route[GNRC_IPV4_ROUTE_TABLE_SIZE];
 
-void gnrc_ipv4_route_clear(void)
+void gnrc_ipv4_route_delete_all(void)
 {
   for (size_t i=0; i<GNRC_IPV4_ROUTE_TABLE_SIZE; i++) {
     ipv4_addr_set_unspecified(&gnrc_ipv4_route[i].network);
