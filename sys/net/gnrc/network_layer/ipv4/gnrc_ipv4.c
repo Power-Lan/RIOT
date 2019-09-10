@@ -194,7 +194,7 @@ static int _fill_ipv4_hdr(gnrc_netif_t *netif, gnrc_pktsnip_t *ipv4)
             ipv4_addr_set_loopback(&hdr->src);
         }
         else {
-
+/*
             ipv4_addr_t *src = gnrc_netif_ipv4_addr_best_src(netif, &hdr->dst,
                                                              false);
             ipv4_addr_t set_ipv4_addr = {{192, 168, 0, 222}}; // TODO implement gnrc_netif_ipv4_addr_best_src
@@ -205,6 +205,7 @@ static int _fill_ipv4_hdr(gnrc_netif_t *netif, gnrc_pktsnip_t *ipv4)
                       ipv4_addr_to_str(addr_str, src, sizeof(addr_str)));
                 memcpy(&hdr->src, src, sizeof(ipv4_addr_t));
             }
+*/
             /* Otherwise leave unspecified */
         }
     }
@@ -334,7 +335,7 @@ static void _send_unicast(gnrc_pktsnip_t *pkt, bool prep_hdr,
     DEBUG("ipv4: send unicast\n");
 
     ipv4_addr_t hop;
-    gnrc_ipv4_route_get_next_hop_l2addr(&ipv4_hdr->dst, &netif, &hop);
+    gnrc_ipv4_route_get_next_hop_l2addr(&ipv4_hdr->dst, &netif, pkt, &hop);
     if (netif == NULL) {
       DEBUG("ipv4: send unicast no route to host\n");
       gnrc_pktbuf_release_error(pkt, EHOSTUNREACH);
@@ -363,8 +364,6 @@ static void _send_unicast(gnrc_pktsnip_t *pkt, bool prep_hdr,
     if( result != 0 ) {
         return;
     }
-
-
 
     if (_safe_fill_ipv4_hdr(netif, pkt, prep_hdr)) {
         DEBUG("ipv4: add interface header to packet\n");
