@@ -192,7 +192,7 @@ typedef struct _gnrc_ipv4_route {
 #endif
 
 extern gnrc_ipv4_route_t gnrc_ipv4_route[GNRC_IPV4_ROUTE_TABLE_SIZE];
-void gnrc_ipv4_route_get_next_hop_l2addr(const ipv4_addr_t *dst, gnrc_netif_t **netif, ipv4_addr_t *hop);
+void gnrc_ipv4_route_get_next_hop_l2addr(const ipv4_addr_t *dst, gnrc_netif_t **netif, gnrc_pktsnip_t *pkt, ipv4_addr_t *hop);
 void gnrc_ipv4_route_delete_all(void);
 bool gnrc_ipv4_route_add(gnrc_ipv4_route_t *route);
 bool gnrc_ipv4_route_delete(gnrc_ipv4_route_t *route);
