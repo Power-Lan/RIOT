@@ -58,6 +58,7 @@ extern kernel_pid_t gnrc_ipv4_arp_pid;
  */
 kernel_pid_t gnrc_ipv4_arp_init(void);
 
+void gnrc_ipv4_arp_print_table(void);
 
 #ifdef __cplusplus
 }
