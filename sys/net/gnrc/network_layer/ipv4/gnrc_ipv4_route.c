@@ -109,7 +109,7 @@ bool gnrc_ipv4_route_delete(gnrc_ipv4_route_t *route)
 /*
  *  Check if the destination is in a IPv4 network attached to this iface
  */
-static bool gnrc_ipv4_route_same_network(const ipv4_addr_t *dst, gnrc_netif_t *netif, ipv4_addr_t *src, ipv4_addr_t *hop)
+static bool gnrc_ipv4_route_same_network(const ipv4_addr_t *dst, gnrc_netif_t *netif, ipv4_addr_t *src)
 {
   int res;
   ipv4_addr_t addrs[GNRC_NETIF_IPV4_ADDRS_NUMOF];
@@ -148,7 +148,7 @@ void gnrc_ipv4_route_get_next_hop_l2addr(const ipv4_addr_t *dst, gnrc_netif_t **
   /* Search if the destination can be contacted directly */
   DEBUG("gnrc_ipv4_route: Search in the known netowrks\n");
   if (*netif != NULL) {
-    if (gnrc_ipv4_route_same_network(dst, *netif, &src, hop)) {
+    if (gnrc_ipv4_route_same_network(dst, *netif, &src)) {
       *hop = *dst;
       memcpy(&hdr->src, &src, sizeof(ipv4_addr_t));
       return;
@@ -156,7 +156,7 @@ void gnrc_ipv4_route_get_next_hop_l2addr(const ipv4_addr_t *dst, gnrc_netif_t **
   } else {
     gnrc_netif_t *it = NULL;
     while ((it = gnrc_netif_iter(it))) {
-      if (gnrc_ipv4_route_same_network(dst, it, &src, hop)) {
+      if (gnrc_ipv4_route_same_network(dst, it, &src)) {
         *netif = it;
         *hop = *dst;
         memcpy(&hdr->src, &src, sizeof(ipv4_addr_t));
@@ -179,8 +179,12 @@ void gnrc_ipv4_route_get_next_hop_l2addr(const ipv4_addr_t *dst, gnrc_netif_t **
     );
 
     if (ipv4_addr_match_prefix(&gnrc_ipv4_route[i].destination, &gnrc_ipv4_route[i].mask, dst)) {
-      *hop = gnrc_ipv4_route[i].gateway;
       *netif = gnrc_netif_get_by_pid(gnrc_ipv4_route[i].iface);
+      *hop = gnrc_ipv4_route[i].gateway;
+
+      // Find best source addr
+      gnrc_ipv4_route_same_network(hop, netif, &src)) {
+      memcpy(&hdr->src, &src, sizeof(ipv4_addr_t));
       return;
     }
   }
