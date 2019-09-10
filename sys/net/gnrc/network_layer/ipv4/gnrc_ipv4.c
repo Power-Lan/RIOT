@@ -361,6 +361,7 @@ static void _send_unicast(gnrc_pktsnip_t *pkt, bool prep_hdr,
     }
 
     if( result != 0 ) {
+        gnrc_pktbuf_release_error(pkt, EHOSTUNREACH);
         return;
     }
 

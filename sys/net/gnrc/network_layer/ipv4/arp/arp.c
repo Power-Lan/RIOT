@@ -47,12 +47,12 @@ void gnrc_ipv4_arp_print_table(void)
     arp_t *payload = &arp_table[i];
     DEBUG("ipv4_arp: ip=%s mac=%02X:%02X:%02X:%02X:%02X:%02X iface=%d flags=%d\n",
       ipv4_addr_to_str(ipv4_addr, &payload->ipv4, IPV4_ADDR_MAX_STR_LEN),
-      payload->sender_hw_addr[0],
-      payload->sender_hw_addr[1],
-      payload->sender_hw_addr[2],
-      payload->sender_hw_addr[3],
-      payload->sender_hw_addr[4],
-      payload->sender_hw_addr[5],
+      payload->mac[0],
+      payload->mac[1],
+      payload->mac[2],
+      payload->mac[3],
+      payload->mac[4],
+      payload->mac[5],
       payload->iface,
       payload->flags);
   }
@@ -60,23 +60,29 @@ void gnrc_ipv4_arp_print_table(void)
 
 static bool havePendingRequests(void)
 {
-  for (int i=0; i<ARP_TABLE_SIZE; i++) {
-    arp_table[i].retryCount--;
-    if (arp_table[i].retryCount == 0) {
-      arp_table[i].flags = 0;
-      continue;
-    }
+  bool ret = false;
 
+  for (int i=0; i<ARP_TABLE_SIZE; i++) {
     if (arp_table[i].flags == 0) {
       continue;
     }
 
-    if (arp_table[i].flags != ARP_FLAG_COMPLETE) {
-      return true;
+    if (arp_table[i].flags == ARP_FLAG_COMPLETE) {
+      continue;
+    }
+
+    if (arp_table[i].flags & ARP_FLAG_KNOWN) {
+      arp_table[i].retryCount--;
+      if (arp_table[i].retryCount == 0) {
+        arp_table[i].flags = 0;
+        continue;
+      }
+
+      ret = true;
     }
   }
 
-  return false;
+  return ret;
 }
 
 static void _send_response(arp_payload_t *request, gnrc_netif_t *netif)
