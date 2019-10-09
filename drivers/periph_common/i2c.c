@@ -104,4 +104,32 @@ int i2c_write_regs(i2c_t dev, uint16_t addr, uint16_t reg,
 }
 #endif /* PERIPH_I2C_NEED_WRITE_REGS */
 
+
+i2c_slave_fsm_t *i2c_slave_fsm = NULL;
+
+void i2c_slave_reset_fsm(i2c_slave_fsm_t *fsm)
+{
+  fsm->reg_addr = 0;
+  fsm->state = I2C_SLAVE_STATE_IDLE;
+  fsm->data = NULL;
+  fsm->len = 0;
+  fsm->index = 0;
+}
+
+void i2c_slave_reg_clear(void)
+{
+  i2c_slave_fsm = NULL;
+}
+
+void i2c_slave_reg(i2c_slave_fsm_t *fsm, i2c_salve_prepare_callback_t prepare, i2c_salve_finish_callback_t finish, uint8_t flags, void *arg)
+{
+  i2c_slave_reset_fsm(fsm);
+  fsm->prepare = prepare;
+  fsm->finish = finish;
+  fsm->flags = flags;
+  fsm->arg = arg;
+
+  i2c_slave_fsm = fsm;
+}
+
 #endif /* I2C_NUMOF */

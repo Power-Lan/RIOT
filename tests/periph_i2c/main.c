@@ -41,6 +41,7 @@
 
 /* i2c_buf is global to reduce stack memory consumtion */
 static uint8_t i2c_buf[BUFSIZE];
+static i2c_slave_fsm_t fsm;
 
 static inline void _print_i2c_read(i2c_t dev, uint16_t *reg, uint8_t *buf,
     int len)
@@ -441,6 +442,73 @@ int cmd_i2c_get_id(int argc, char **argv)
     return 0;
 }
 
+uint8_t i2c_slave_prepare_callback (bool read, uint16_t addr, uint8_t **data, void *arg)
+{
+  (void) arg;
+
+  if (read) {
+    printf("I2C master wants to read register 0x%04X\n", addr);
+
+    // The size of your register may be variable
+    uint8_t size = 8;
+
+    // Prepare a payload to serve
+    for (int i = 0; i < 8; i++) {
+      i2c_buf[i] = 0x20 + i;
+    }
+
+    // Return the payload data and size;
+    *data = i2c_buf;
+    return size;
+  } else {
+    printf("I2C master wants to write into register 0x%04X\n", addr);
+
+    // The size of your register may be variable
+    uint8_t size = 4;
+
+    // Return the payload data and available size;
+    *data = i2c_buf;
+    return size;
+  }
+}
+
+void i2c_slave_finish_callback (bool read, uint16_t addr, size_t len, void *arg)
+{
+  (void) arg;
+
+  if (read) {
+    printf("I2C master have read %u bytes for register 0x%04X\n", len, addr);
+  } else {
+    printf("I2C master have write %u bytes into register 0x%04X\n", len, addr);
+    printf("[");
+    for (size_t i = 0; i < len; i++) {
+        if (i != 0) {
+            printf(", ");
+        }
+        printf("0x%02x", i2c_buf[i]);
+    }
+    puts("]");
+  }
+}
+
+int cmd_i2c_slave_reg(int argc, char **argv)
+{
+    (void)argv;
+    (void)argc;
+    i2c_slave_reg(&fsm, i2c_slave_prepare_callback, i2c_slave_finish_callback, 0, NULL);
+    puts("Success: Setup i2c slave mode");
+    return 0;
+}
+
+int cmd_i2c_slave_reg_clear(int argc, char **argv)
+{
+    (void)argv;
+    (void)argc;
+    i2c_slave_reg_clear();
+    puts("Success: Setup i2c slave mode stopped");
+    return 0;
+}
+
 static const shell_command_t shell_commands[] = {
     { "i2c_acquire", "Get access to the I2C bus", cmd_i2c_acquire },
     { "i2c_release", "Release to the I2C bus", cmd_i2c_release },
@@ -454,6 +522,9 @@ static const shell_command_t shell_commands[] = {
     { "i2c_write_regs", "Write bytes to registers", cmd_i2c_write_regs },
     { "i2c_get_devs", "Gets amount of supported i2c devices", cmd_i2c_get_devs },
     { "i2c_get_id", "Get the id of the fw", cmd_i2c_get_id },
+    { "i2c_slave_reg", "Handle I2C slave read/write access to registers", cmd_i2c_slave_reg },
+    { "i2c_slave_reg_clear", "STOP I2C slave read/write access to registers", cmd_i2c_slave_reg_clear },
+
     { NULL, NULL, NULL }
 };
 

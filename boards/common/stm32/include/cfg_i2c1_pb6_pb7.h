@@ -25,6 +25,23 @@
 extern "C" {
 #endif
 
+/*
+ *  If you want to initialise I2C1 as slave, add this define in the makefile
+ *  of your application.
+ *  -DI2C1_MODE=I2C_MODE_SLAVE
+ */
+#ifndef I2C1_MODE
+#define I2C1_MODE   (I2C_MODE_MASTER)
+#endif
+
+/*
+ *  Overwrite the slave addr of the device
+ *  -DI2C1_SLAVE_ADDR=42
+ */
+#ifndef I2C1_SLAVE_ADDR
+#define I2C1_SLAVE_ADDR   (0x12)
+#endif
+
 /**
  * @name I2C configuration
  * @{
@@ -33,6 +50,8 @@ static const i2c_conf_t i2c_config[] = {
     {
         .dev            = I2C1,
         .speed          = I2C_SPEED_NORMAL,
+        .mode           = I2C1_MODE,
+        .slave_addr     = I2C1_SLAVE_ADDR,
         .scl_pin        = GPIO_PIN(PORT_B, 6),
         .sda_pin        = GPIO_PIN(PORT_B, 7),
 #if CPU_FAM_STM32L4

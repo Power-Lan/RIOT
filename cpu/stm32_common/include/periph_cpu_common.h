@@ -522,11 +522,23 @@ typedef enum {
 /** @} */
 
 /**
+ * @brief   Default i2c mode
+ * @{
+ */
+typedef enum {
+  I2C_MODE_MASTER,
+  I2C_MODE_SLAVE
+} i2c_mode_t;
+/** @} */
+
+/**
  * @brief   Structure for I2C configuration data
  */
 typedef struct {
     I2C_TypeDef *dev;       /**< i2c device */
     i2c_speed_t speed;      /**< i2c bus speed */
+    i2c_mode_t mode;        /**< i2c bus mode */
+    uint16_t slave_addr;    /**< i2c addr for slave mode */
     gpio_t scl_pin;         /**< scl pin number */
     gpio_t sda_pin;         /**< sda pin number */
 #ifndef CPU_FAM_STM32F1

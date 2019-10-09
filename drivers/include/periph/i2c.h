@@ -216,6 +216,62 @@ typedef enum {
 void i2c_init(i2c_t dev);
 
 /**
+ * @brief  Types definitiçon for I2C slave
+ /** @{ */
+ */
+typedef uint8_t (*i2c_salve_prepare_callback_t) (bool read, uint16_t addr, uint8_t **data, void *arg);
+typedef void (*i2c_salve_finish_callback_t) (bool read, uint16_t addr, size_t len, void *arg);
+typedef enum {
+    I2C_SLAVE_STATE_IDLE = 0,
+    I2C_SLAVE_STATE_WAIT_REG_ADDR1,
+    I2C_SLAVE_STATE_WAIT_REG_ADDR2,
+    I2C_SLAVE_STATE_WAIT_RW,
+    I2C_SLAVE_STATE_READING,
+    I2C_SLAVE_STATE_WRITING
+} i2c_slave_state_t;
+/** @} */
+
+/**
+ * @brief   I2C slave state machine context
+ */
+typedef struct {
+  void *arg;  /**< user context */
+  uint16_t reg_addr; /**< address of the requested register */
+  i2c_slave_state_t state; /**< current state of the FSM */
+  uint8_t flags;   /**< I2C flags (I2C_REG16) */
+  i2c_salve_prepare_callback_t prepare; /**< application callback to setup buffers */
+  i2c_salve_finish_callback_t finish; /**< application callback to notify end of transaction */
+  uint8_t *data;  /**< R/W buffer from application */
+  size_t len; /**< R/W buffer size */
+  size_t index; /**< R/W buffer current position */
+} i2c_slave_fsm_t;
+
+extern i2c_slave_fsm_t *i2c_slave_fsm;
+
+/**
+ * @brief   Register a state machine used by I2C slave
+ *
+ * The state machine is reset, and ready to be used in the next transaction
+ *
+ * @param[in] fsm           the state machine
+ */
+void i2c_slave_reg(i2c_slave_fsm_t *fsm, i2c_salve_prepare_callback_t prepare, i2c_salve_finish_callback_t finish, uint8_t flags, void *arg);
+
+/**
+ * @brief   Remove the I2C slave state machine
+ */
+void i2c_slave_reg_clear(void);
+
+/**
+ * @brief   Reset the state machine used by I2C slave
+ *
+ * The state machine is reset, and ready to be used in the next transaction
+ *
+ * @param[in] fsm           the state machine
+ */
+void i2c_slave_reset_fsm(i2c_slave_fsm_t *fsm);
+
+/**
  * @brief   Get mutually exclusive access to the given I2C bus
  *
  * In case the I2C device is busy, this function will block until the bus is

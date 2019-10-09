@@ -59,7 +59,6 @@
 #define CLEAR_FLAG      (I2C_ICR_NACKCF | I2C_ICR_ARLOCF | I2C_ICR_BERRCF | I2C_ICR_ADDRCF)
 
 /* static function definitions */
-static inline void _i2c_init(I2C_TypeDef *i2c, uint32_t timing);
 static int _write(I2C_TypeDef *i2c, uint16_t addr, const void *data,
                   size_t length, uint8_t flags, uint32_t cr2_flags);
 static int _start(I2C_TypeDef *i2c, uint32_t cr2, uint8_t flags);
@@ -72,14 +71,12 @@ static inline int _wait_for_bus(I2C_TypeDef *i2c);
  */
 static mutex_t locks[I2C_NUMOF];
 
-void i2c_init(i2c_t dev)
+static void _i2c_init_common(i2c_t dev)
 {
     assert(dev < I2C_NUMOF);
 
     DEBUG("[i2c] init: initializing device\n");
     mutex_init(&locks[dev]);
-
-    I2C_TypeDef *i2c = i2c_config[dev].dev;
 
     periph_clk_en(i2c_config[dev].bus, i2c_config[dev].rcc_mask);
 
@@ -97,8 +94,11 @@ void i2c_init(i2c_t dev)
     gpio_init_af(i2c_config[dev].scl_pin, i2c_config[dev].scl_af);
     gpio_init(i2c_config[dev].sda_pin, GPIO_OD_PU);
     gpio_init_af(i2c_config[dev].sda_pin, i2c_config[dev].sda_af);
+}
 
-    DEBUG("[i2c] init: configuring device\n");
+static void _i2c_init_timing(i2c_t dev, I2C_TypeDef *i2c)
+{
+    DEBUG("[i2c] init: configuring timing\n");
     /* set the timing register value from predefined values */
     i2c_timing_param_t tp = timing_params[i2c_config[dev].speed];
     uint32_t timing = (( (uint32_t)tp.presc << I2C_TIMINGR_PRESC_Pos) |
@@ -106,12 +106,17 @@ void i2c_init(i2c_t dev)
                        ( (uint32_t)tp.sdadel << I2C_TIMINGR_SDADEL_Pos) |
                        ( (uint16_t)tp.sclh << I2C_TIMINGR_SCLH_Pos) |
                        tp.scll);
-    _i2c_init(i2c, timing);
+
+     /* set timing registers */
+     i2c->TIMINGR = timing;
 }
 
-static void _i2c_init(I2C_TypeDef *i2c, uint32_t timing)
+static void _i2c_init_master(i2c_t dev)
 {
+    I2C_TypeDef *i2c = i2c_config[dev].dev;
     assert(i2c != NULL);
+
+    DEBUG("[i2c] init: configuring as master\n");
 
     /* disable device */
     i2c->CR1 &= ~(I2C_CR1_PE);
@@ -122,8 +127,7 @@ static void _i2c_init(I2C_TypeDef *i2c, uint32_t timing)
     /* configure digital noise filter */
     i2c->CR1 |= I2C_CR1_DNF;
 
-    /* set timing registers */
-    i2c->TIMINGR = timing;
+    _i2c_init_timing(dev, i2c);
 
     /* configure clock stretching */
     i2c->CR1 &= ~(I2C_CR1_NOSTRETCH);
@@ -133,6 +137,60 @@ static void _i2c_init(I2C_TypeDef *i2c, uint32_t timing)
 
     /* enable device */
     i2c->CR1 |= I2C_CR1_PE;
+}
+
+static void _i2c_init_slave(i2c_t dev)
+{
+    uint16_t addr = i2c_config[dev].slave_addr;
+    I2C_TypeDef *i2c = i2c_config[dev].dev;
+    assert(i2c != NULL);
+
+    DEBUG("[i2c] init: configuring as slave with addr=0x%02X\n", addr);
+
+    /* disable device */
+    i2c->CR1 &= ~(I2C_CR1_PE);
+
+    /* configure analog noise filter */
+    i2c->CR1 |= I2C_CR1_ANFOFF;
+
+    /* configure digital noise filter */
+    i2c->CR1 |= I2C_CR1_DNF;
+
+    _i2c_init_timing(dev, i2c);
+
+    /* configure clock stretching */
+    i2c->CR1 &= ~(I2C_CR1_NOSTRETCH);
+
+    /* configure slave addr (7 bits) */
+    i2c->OAR1 &= ~(I2C_OAR1_OA1EN);
+    i2c->OAR1 &= ~(I2C_OAR1_OA1);
+    i2c->OAR1 |= ((addr & 0x7F) << 1);
+    i2c->OAR1 |= I2C_OAR1_OA1EN;
+
+    /* Various conf */
+    i2c->CR1 |= I2C_CR1_ERRIE | I2C_CR1_ADDRIE | I2C_CR1_RXIE | I2C_CR1_TXIE | I2C_CR1_STOPIE;
+    //i2c->CR2 |= I2C_CR2_RELOAD;
+
+    /* Clear interrupt */
+    i2c->ICR |= CLEAR_FLAG;
+
+    /* enable device */
+    i2c->CR1 |= I2C_CR1_PE;
+}
+
+void i2c_init(i2c_t dev)
+{
+
+    if (i2c_config[dev].mode == I2C_MODE_MASTER) {
+      _i2c_init_common(dev);
+      _i2c_init_master(dev);
+    } else if (i2c_config[dev].mode == I2C_MODE_SLAVE) {
+      _i2c_init_common(dev);
+      _i2c_init_slave(dev);
+    } else {
+      DEBUG("[i2c] init: unknown mode %d\n", i2c_config[dev].mode);
+      core_panic(PANIC_GENERAL_ERROR, "I2C FAULT");
+    }
 }
 
 int i2c_acquire(i2c_t dev)
@@ -403,8 +461,142 @@ static inline void irq_handler(i2c_t dev)
     assert(dev < I2C_NUMOF);
 
     I2C_TypeDef *i2c = i2c_config[dev].dev;
-
     unsigned state = i2c->ISR;
+
+    if (i2c_slave_fsm == NULL && state & I2C_ISR_ADDR) {
+      /* restart device, generate error for master */
+      i2c->CR1 &= ~(I2C_CR1_PE);
+      i2c->CR1 |= I2C_CR1_PE;
+      return;
+    }
+
+    if (i2c_slave_fsm != NULL) {
+      /*
+       * ADDR received, It's can be :
+       * - The start of a new transaction, or
+       * - The second part of a read
+       */
+      if (state & I2C_ISR_ADDR) {
+          bool read = (i2c->ISR & I2C_ISR_DIR) != 0;
+
+          if (i2c_slave_fsm->state == I2C_SLAVE_STATE_WAIT_RW) {
+            size_t len = i2c_slave_fsm->prepare(read, i2c_slave_fsm->reg_addr, &i2c_slave_fsm->data, i2c_slave_fsm->arg);
+            if (len > 0) {
+              i2c_slave_fsm->state = read ? I2C_SLAVE_STATE_READING : I2C_SLAVE_STATE_WRITING;
+              i2c_slave_fsm->len = len;
+            } else {
+              /* prepare report an error */
+              /* restart i2c and fsm, generate error for master */
+              i2c_slave_reset_fsm(i2c_slave_fsm);
+              i2c->CR1 &= ~(I2C_CR1_PE);
+              i2c->CR1 |= I2C_CR1_PE;
+            }
+          } else if (i2c_slave_fsm->state == I2C_SLAVE_STATE_IDLE) {
+            if (read) {
+              /* First access must be a write to annonce the register addr */
+              /* restart i2c and fsm, generate error for master */
+              i2c_slave_reset_fsm(i2c_slave_fsm);
+              i2c->CR1 &= ~(I2C_CR1_PE);
+              i2c->CR1 |= I2C_CR1_PE;
+            } else {
+              i2c_slave_fsm->state = I2C_SLAVE_STATE_WAIT_REG_ADDR1;
+            }
+          } else {
+            /* restart i2c and fsm, generate error for master */
+            i2c_slave_reset_fsm(i2c_slave_fsm);
+            i2c->CR1 &= ~(I2C_CR1_PE);
+            i2c->CR1 |= I2C_CR1_PE;
+            return;
+          }
+
+
+          // Enter one by one byte mode
+          i2c->CR2 &= ~I2C_CR2_NBYTES_Msk;
+          i2c->CR2 |= (1 << I2C_CR2_NBYTES_Pos);
+
+          // Clear IRQ
+          i2c->ICR |= I2C_ICR_ADDRCF;
+
+          return;
+      }
+
+      // I2C controller: TX buffer is empty
+      if (state & I2C_ISR_TXIS) {
+        if (i2c_slave_fsm->state == I2C_SLAVE_STATE_READING) {
+          if (i2c_slave_fsm->index < i2c_slave_fsm->len) {
+            i2c->TXDR = i2c_slave_fsm->data[i2c_slave_fsm->index];
+            i2c_slave_fsm->index++;
+          } else {
+            // Tx buffer overflow, the master read too much data
+            i2c->TXDR = 0xFF;
+          }
+        }
+
+        return;
+      }
+
+      if (state & I2C_ISR_RXNE) {
+        if (i2c_slave_fsm->state == I2C_SLAVE_STATE_WAIT_RW) {
+          size_t len = i2c_slave_fsm->prepare(0, i2c_slave_fsm->reg_addr, &i2c_slave_fsm->data, i2c_slave_fsm->arg);
+          if (len > 0) {
+            i2c_slave_fsm->state = I2C_SLAVE_STATE_WRITING;
+            i2c_slave_fsm->len = len;
+          } else {
+            /* prepare report an error */
+            /* restart i2c and fsm, generate error for master */
+            i2c_slave_reset_fsm(i2c_slave_fsm);
+            i2c->CR1 &= ~(I2C_CR1_PE);
+            i2c->CR1 |= I2C_CR1_PE;
+          }
+        }
+
+        if (i2c_slave_fsm->state == I2C_SLAVE_STATE_WAIT_REG_ADDR1) {
+          i2c_slave_fsm->reg_addr = I2C1->RXDR;
+
+          if (i2c_slave_fsm->flags & I2C_REG16) {
+            i2c_slave_fsm->state = I2C_SLAVE_STATE_WAIT_REG_ADDR2;
+          } else {
+            i2c_slave_fsm->state = I2C_SLAVE_STATE_WAIT_RW;
+          }
+        } else if (i2c_slave_fsm->state == I2C_SLAVE_STATE_WAIT_REG_ADDR2) {
+          i2c_slave_fsm->reg_addr = (i2c_slave_fsm->reg_addr << 8) | (I2C1->RXDR & 0xFF);
+          i2c_slave_fsm->state = I2C_SLAVE_STATE_WAIT_RW;
+        }
+        else if (i2c_slave_fsm->state == I2C_SLAVE_STATE_WRITING) {
+          if (i2c_slave_fsm->index < i2c_slave_fsm->len) {
+            i2c_slave_fsm->data[i2c_slave_fsm->index] = I2C1->RXDR;
+            i2c_slave_fsm->index++;
+          } else {
+            // Rx buffer overflow, the master write too much data
+            (void) I2C1->RXDR;
+          }
+        }
+
+        return;
+      }
+
+      /*
+       * STOP received, the current i2c transaction is done.
+       */
+      if (state & I2C_ISR_STOPF) {
+        // Acknowledge STOP
+        i2c->ICR |= I2C_ICR_STOPCF;
+
+        // Flush TX buffer
+        i2c->ISR |= I2C_ISR_TXE;
+
+        // Notify end of transaction
+        if (2c_slave_fsm->finish != NULL) {
+          i2c_slave_fsm->finish(i2c_slave_fsm->state == I2C_SLAVE_STATE_READING, i2c_slave_fsm->reg_addr, i2c_slave_fsm->index, i2c_slave_fsm->arg);
+        }
+
+        // Reset FSM
+        i2c_slave_reset_fsm(i2c_slave_fsm);
+        return;
+      }
+    }
+
+
     DEBUG("\n\n### I2C ERROR OCCURED ###\n");
     DEBUG("status: %08x\n", state);
     if (state & I2C_ISR_OVR) {
@@ -428,6 +620,7 @@ static inline void irq_handler(i2c_t dev)
     if (state & I2C_ISR_ALERT) {
         DEBUG("SMBALERT\n");
     }
+
     core_panic(PANIC_GENERAL_ERROR, "I2C FAULT");
 }
 
